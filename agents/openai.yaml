@@ -1,4 +1,4 @@
 interface:
   display_name: "Self-Media Compliance Review"
-  short_description: "面向多平台自媒体视频、封面、文案和带货内容的违规风险审核"
-  default_prompt: "Use $self-media-compliance-review to audit this self-media video, cover, subtitles, links, and publish copy before delivery."
+  short_description: "面向多平台自媒体视频、封面、文案和带货内容的违规风险审核；支持抖音电商商品一致性、千川低质素材、功效声明和行业资质核查"
+  default_prompt: "Use $self-media-compliance-review to audit this self-media video, cover, subtitles, links, and publish copy before delivery. For e-commerce content, also check product consistency, 千川 low-quality patterns, efficacy claims, and regulated-category qualifications."

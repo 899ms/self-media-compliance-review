@@ -22,6 +22,7 @@
 ## 能做什么
 
 - **按平台读取参考文件**：根据目标平台读取视频号、微信公众号、抖音、快手、B站、小红书的规则参考。
+- **电商合规审核**：商品三一致检查（视频 vs 详情页 vs 口播）、千川低质素材避坑、功效声明核验、行业资质排查、价格/赠品/活动一致性。
 - **覆盖常见发布面**：检查脚本、封面、标题、字幕、口播、画面、BGM、评论、商品链接和账号资料。
 - **风险分级**：输出 `Pass` / `Low` / `Medium` / `High` / `Blocker`。
 - **证据定位**：要求标注视频时间点、字幕行、封面文案、商品链接或待核验证据。
@@ -29,6 +30,7 @@
 - **案例排查参考**：对限流、封号、申诉、原创争议、评论灰产等场景给出排查方向和申诉材料清单。
 - **动态相似案例（可选）**：配置 TikHub 后，可只通过小红书检索当前相关帖子和评论，补充违规、限流、申诉等相似讨论样本。
 - **隐形规则补充**：除官方规则外，整理了各平台创作者实际发布和评论区讨论中的经验样本，用来补充官方没写明的隐形审核尺度（作为症状和争议线索，不当作平台规则）。
+- **机器可读输出**：支持 JSON 格式输出，可接入胶囊影院、选品助手和飞书审批流程。
 - **可扩展规则文件**：新增平台时，可以按相同结构补充参考文件。
 
 ## 适合哪些场景
@@ -37,7 +39,10 @@
 | --- | --- | --- |
 | 短视频最终交付前审核 | 适合 | 检查标题、封面、字幕、口播、画面和平台文案。 |
 | 视频切片 / B站切片 / 抖音切片 | 适合 | 可接在剪辑和包装之后，作为发布前检查。 |
-| 带货视频风险检查 | 适合 | 重点看商品链接、价格赠品一致性、虚假营销、引流和资质。 |
+| 带货视频风险检查 | 适合 | 重点看商品链接、价格赠品一致性、虚假营销、引流、资质、千川低质素材和商品三一致。 |
+| 千川投放素材审核 | 适合 | 对照千川低质素材 10 类标准逐项检查，降低素材被拒风险。 |
+| 选品前风险排查 | 适合 | 检查商品类目是否需要特殊资质，详情页是否存在高风险声明。 |
+| 文案生成前合规 | 适合 | 扫一遍产品卖点，标出禁用词、高风险表达和需要补证据的声明。 |
 | 健康、财经、法律等高风险内容 | 适合 | 会标出资质、功效承诺、专业建议和误导风险。 |
 | 版权、肖像、隐私复查 | 适合 | 会把授权、来源、肖像和隐私作为待核验项。 |
 | 替代人工法务审核 | 不适合 | 本项目是风险控制辅助，不提供法律结论。 |
@@ -52,6 +57,9 @@
 | 快手 / Kuaishou | [`kuaishou.md`](./references/kuaishou.md) | [`cases/kuaishou.md`](./references/cases/kuaishou.md) |
 | B站 / Bilibili | [`bilibili.md`](./references/bilibili.md) | [`cases/bilibili.md`](./references/cases/bilibili.md) |
 | 小红书 / Xiaohongshu | [`xiaohongshu.md`](./references/xiaohongshu.md) | [`cases/xiaohongshu.md`](./references/cases/xiaohongshu.md) |
+| 抖音电商 / Douyin E-Commerce | [`douyin-ecommerce.md`](./references/douyin-ecommerce.md) | [`cases/ecommerce-cases.md`](./references/cases/ecommerce-cases.md) |
+| 千川低质素材 | [`qianchuan-low-quality.md`](./references/qianchuan-low-quality.md) | — |
+| 电商功效声明 | [`ecommerce-claims.md`](./references/ecommerce-claims.md) | — |
 
 规则来源汇总见：[`docs/sources.md`](./docs/sources.md)。跨平台案例索引见：[`recent-cases-2025-2026.md`](./references/recent-cases-2025-2026.md)。
 
@@ -82,6 +90,14 @@
 
 > 使用 self-media-compliance-review，结合案例库里抖音"带货话术被判违规"的既往经验和评论讨论，帮我看看这条口播会不会踩隐形规则。
 
+电商场景的几种入口：
+
+> 使用 self-media-compliance-review，审核这个带货视频的商品一致性、千川低质素材和功效声明，目标平台是抖音电商。
+
+> 使用 self-media-compliance-review，帮我看看这个品能不能带，有哪些资质要求和风险点。
+
+> 使用 self-media-compliance-review，写文案前帮我扫一遍这个商品的详情页，标出禁用词和需要补证据的卖点。
+
 ## 可选：动态小红书相似案例检索
 
 这个 skill 随仓库发布了公开工具脚本 [tools/xhs_dynamic_evidence.py](./tools/xhs_dynamic_evidence.py)，可以在需要时通过 TikHub 检索小红书帖子和评论。它只通过小红书找动态样本；其他平台的违规经验也只作为小红书讨论样本检索。
@@ -103,6 +119,7 @@
 - 商品链接、价格、赠品、活动规则
 - 账号身份、资质证明、素材授权说明
 - 目标平台和发布场景
+- （电商场景）商品详情页截图、SKU 列表、品牌授权、行业资质
 
 ## 输出格式
 

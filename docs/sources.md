@@ -22,7 +22,24 @@ Use official platform pages as the primary basis. If an official page is JavaScr
 
 Notes: the operation-norm page embeds rule text in `cgiData.content`; the service-agreement announcement page embeds content in page script. The local reference summarizes official categories and appeal evidence requirements without copying the full official text.
 
-## Douyin
+## Douyin E-Commerce
+
+- 抖店后台规则中心: https://fxg.jinritemai.com/
+- 抖音电商学习中心: https://school.jinritemai.com/doudian/web/home
+- 巨量千川帮助中心: advertising/promotion material review rules
+- 巨量创意: https://cc.oceanengine.com/
+- 飞书课程《低质素材避坑指南》: https://kcnati85mejl.feishu.cn/wiki/KsvDwRVsjikpxDkagEWcgjlKnTc
+- 飞书课程《6980 内部短视频带货课程》: https://kcnati85mejl.feishu.cn/wiki/AMEOwX9NKiDFjRkenNccVPM8nbb
+- Douyin creator-reported e-commerce penalties, sampled 2026-06-23: see `references/cases/ecommerce-cases.md`.
+
+Notes: the 抖店 rule center is JavaScript-rendered. The e-commerce references summarize 商品三一致、千川低质素材、功效声明 and 行业资质 rules. Recheck official pages for high-stakes decisions.
+
+### E-Commerce Industry Regulators
+
+- 市场监管总局 (samr.gov.cn): advertising law, internet advertising, consumer rights
+- 国家药监局 (nmpa.gov.cn): cosmetics, drugs, medical devices, health food
+- 国家卫生健康委 (nhc.gov.cn): health and medical content boundaries
+- 中国人民银行 (pbc.gov.cn): financial, loan, investment content regulation
 
 - 抖音规则中心: https://www.douyin.com/rule/policy
 - 抖音用户服务协议: https://www.douyin.com/agreements/?id=6773906068725565448
