@@ -244,13 +244,9 @@ def render_markdown(report: dict) -> str:
 
 
 def run_search(client, query: str, max_notes: int = 8) -> list[dict]:
-    try:
-        payload = client.call("xiaohongshu_app_v2_search_notes", {"keyword": query, "page": 1})
-    except Exception:
-        payload = client.call("xiaohongshu_web_v3_fetch_search_notes", {"keyword": query, "page": 1})
-    else:
-        if isinstance(payload, dict) and payload.get("error"):
-            payload = client.call("xiaohongshu_web_v3_fetch_search_notes", {"keyword": query, "page": 1})
+    payload = client.call("xiaohongshu_app_v2_search_notes", {"keyword": query, "page": 1})
+    if isinstance(payload, dict) and payload.get("error"):
+        raise RuntimeError(f"xiaohongshu_app_v2_search_notes failed for {query!r}: {payload['error']}")
     return extract_notes(payload, query)[:max_notes]
 
 
@@ -272,7 +268,12 @@ def run_diagnose(
     warnings: list[str] = []
     seen_note_ids = set()
     for query in queries:
-        for note in run_search(client, query, max_notes=max_notes):
+        try:
+            query_notes = run_search(client, query, max_notes=max_notes)
+        except Exception as exc:
+            warnings.append(f"search failed for {query!r}: {exc}")
+            continue
+        for note in query_notes:
             note_id = note.get("note_id")
             if note_id and note_id not in seen_note_ids:
                 seen_note_ids.add(note_id)

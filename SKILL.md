@@ -43,6 +43,7 @@ Always run the universal audit areas below. Then load platform-specific referenc
 - 快手 / Kuaishou: read `references/kuaishou.md`.
 - B站 / 哔哩哔哩 / Bilibili: read `references/bilibili.md`.
 - 小红书 / Xiaohongshu / RED: read `references/xiaohongshu.md`.
+- TikTok / 国际版抖音: no dedicated reference file yet — run the universal audit areas only.
 - Recent enforcement cases, creator discussions, or account-status/限流 questions: read `references/recent-cases-2025-2026.md`.
 
 ### E-Commerce References
@@ -66,19 +67,60 @@ When using recent cases, load the index first, then the matching platform case f
 - B站: `references/cases/bilibili.md`.
 - 抖音电商/带货: `references/cases/ecommerce-cases.md`.
 
-## Optional Dynamic Xiaohongshu Evidence
+## Local Evidence Search
 
-When the user has already encountered a violation, limiting, takedown, failed appeal, low views, non-indexing, or unclear platform notice, dynamic Xiaohongshu search can be used as an optional evidence supplement.
+Local search is available by default and does not require live-search permission
+because it reads only the static files shipped in this repository and makes no
+network request. Use `tools/search_local_evidence.py` when the user's symptom or
+question may span several reference files, or when a focused lookup is more
+efficient than reading an entire case catalog.
 
-Use `tools/xhs_dynamic_evidence.py diagnose` only when:
+- Search only the published `references/**/*.md` and `docs/sources.md` corpus.
+- Do not search `local/`; it is a developer-only, gitignored collection and is
+  not present when users install the Skill.
+- Cite every result by repository path, line, heading, and source type.
+- Describe it as `本地静态证据`, never as current/live platform evidence.
+- No local match means only that the shipped corpus has no lexical match. It
+  does not prove that the content is compliant or that no platform case exists.
+- Local search may run automatically as part of an ordinary compliance review.
 
-- the user asks to find similar cases or current discussion; or
-- the review depends on recent hidden-rule symptoms; and
-- `TIKHUB_API_KEY` is configured.
+## Optional Live Evidence
 
-If the key is missing or the tool fails, do not block the review. Continue with official rules, static case files, and user-provided evidence. State: "动态小红书检索未启用：当前环境未配置 `TIKHUB_API_KEY` 或工具不可用。"
+Live search is off by default. Do not search merely because a TikHub key, a
+platform browser plugin/Skill, or a general browser tool is installed. Run the
+normal review from official/static references and user-provided material unless
+the user explicitly asks to search current platform content, recent cases, or
+live discussion.
 
-Dynamic evidence must be reported under `动态小红书相似案例`. It is a 可选增强 and must be separated from official rules. Ordinary creator notes and comments are discussion samples, not platform rules.
+When the user explicitly requests live search, inspect the tools already
+available in the current environment and use a suitable available channel:
+
+1. If the user names a provider or tool, use only that provider or tool. Do not
+   silently substitute another source if it is unavailable.
+2. Otherwise, prefer a target-platform-specific browser plugin or Skill when it
+   can read the requested public content.
+3. TikHub is an optional adapter. Use `tools/xhs_dynamic_evidence.py diagnose`
+   for Xiaohongshu only when `TIKHUB_API_KEY` is configured and TikHub search is
+   available.
+4. A real browser automation tool such as `agent-browser` may be used when it
+   can access the public search/results page. Respect login, access, CAPTCHA,
+   rate-limit, and platform restrictions; do not bypass them.
+
+The presence of a live-search channel is not authorization to call it. A live
+lookup may consume API quota, incur fees, or access a logged-in browser session,
+so it remains opt-in for each user request.
+
+Before searching, report which channel will be used. If the requested channel
+is missing or fails, do not block the compliance review. Continue with official
+rules, static case files, and user-provided evidence, and state that live search
+was not performed or did not complete. Do not claim that no recent cases exist
+when the search itself failed.
+
+Dynamic evidence must be reported under a separate `实时平台证据（可选）`
+section with provider, search terms, target platform, sample time, content IDs
+or URLs, publish dates when available, and limitations. Ordinary creator posts
+and comments are discussion samples, not platform rules, and cannot determine
+the final severity by themselves.
 
 For new platforms, add one reference file under `references/<platform>.md` with:
 

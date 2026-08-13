@@ -13,7 +13,7 @@
 [![GitHub stars](https://img.shields.io/github/stars/JuneYaooo/self-media-compliance-review?style=flat)](https://github.com/JuneYaooo/self-media-compliance-review/stargazers)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 [![Codex Skill](https://img.shields.io/badge/Codex-Skill-black.svg)](./SKILL.md)
-[![Platforms](https://img.shields.io/badge/platforms-6%20platforms-orange.svg)](#-已覆盖平台)
+[![Platforms](https://img.shields.io/badge/platforms-6%20platforms-orange.svg)](#-已覆盖平台与电商专项)
 
 </div>
 
@@ -28,7 +28,8 @@
 - **证据定位**：要求标注视频时间点、字幕行、封面文案、商品链接或待核验证据。
 - **修改建议**：给出消音、打码、删改、补资质、补授权、改写话术、移除链接等具体动作。
 - **案例排查参考**：对限流、封号、申诉、原创争议、评论灰产等场景给出排查方向和申诉材料清单。
-- **动态相似案例（可选）**：配置 TikHub 后，可只通过小红书检索当前相关帖子和评论，补充违规、限流、申诉等相似讨论样本。
+- **本地证据检索**：默认可用，只搜索随 Skill 发布的规则和案例文件，不联网、不消耗 API 额度，并返回可追溯的文件和行号。
+- **实时平台证据（可选）**：仅在用户明确要求实时搜索时，通过当前环境已有的 TikHub、平台浏览插件/Skill 或浏览器工具检索近期案例和讨论。
 - **隐形规则补充**：除官方规则外，整理了各平台创作者实际发布和评论区讨论中的经验样本，用来补充官方没写明的隐形审核尺度（作为症状和争议线索，不当作平台规则）。
 - **机器可读输出**：支持 JSON 格式输出，可接入胶囊影院、选品助手和飞书审批流程。
 - **可扩展规则文件**：新增平台时，可以按相同结构补充参考文件。
@@ -47,7 +48,7 @@
 | 版权、肖像、隐私复查 | 适合 | 会把授权、来源、肖像和隐私作为待核验项。 |
 | 替代人工法务审核 | 不适合 | 本项目是风险控制辅助，不提供法律结论。 |
 
-## 已覆盖平台
+## 已覆盖平台与电商专项
 
 | 平台 | 规则文件 | 案例/申诉场景 |
 | --- | --- | --- |
@@ -98,19 +99,32 @@
 
 > 使用 self-media-compliance-review，写文案前帮我扫一遍这个商品的详情页，标出禁用词和需要补证据的卖点。
 
-## 可选：动态小红书相似案例检索
+## 默认：本地证据检索
 
-这个 skill 随仓库发布了公开工具脚本 [tools/xhs_dynamic_evidence.py](./tools/xhs_dynamic_evidence.py)，可以在需要时通过 TikHub 检索小红书帖子和评论。它只通过小红书找动态样本；其他平台的违规经验也只作为小红书讨论样本检索。
+普通审核可以自动搜索仓库随 Skill 发布的 `references/**/*.md` 和 `docs/sources.md`，不需要 TikHub、浏览器、登录状态或额外授权，也不会产生网络请求。适合从多个平台规则和案例文件中查找与“导流、限流、封号、搬运、功效、申诉”等症状相关的段落。
 
-如果需要实时查询，可以考虑配置 TikHub。需要准备并注入 `TIKHUB_API_KEY`，相关 SDK 和接入说明见 [TikHub-API-Python-SDK](https://github.com/TikHub/TikHub-API-Python-SDK)。
+本地检索结果会保留文件路径、行号、章节标题和来源类型，便于复核。它只代表当前仓库中的静态知识，不能冒充实时平台信息；没有命中也不代表内容合规或平台上不存在相似案例。开发机上的 `local/` 历史采集目录不会随 Skill 发布，因此不属于正式检索语料。
 
-注意：动态检索会调用 TikHub 接口，可能产生 TikHub API 调用费用，也可能消耗账号额度。建议只在用户真的遇到违规、限流、申诉失败、通知原因不清，或需要当前相似案例和评论讨论时启用。
+## 可选：用户明确要求时实时检索
 
-可以直接用自然语言让 agent 判断是否启用：
+实时检索默认关闭。即使当前环境已经配置 TikHub key，或者安装了小红书浏览插件、相关 Skill、`agent-browser` 等浏览器工具，也不会因此自动联网搜索。普通审核只使用静态规则、案例库和用户提供的材料。
 
-> 使用 self-media-compliance-review，帮我排查这条小红书笔记被判导流的原因。如果当前环境已经配置 TikHub key，可以实时查一下小红书相似帖子和评论；如果没有配置，就只用静态规则和案例库。
+只有当用户明确提出“实时搜一下”“查近期案例”“看看平台当前讨论”等要求时，agent 才检查当前环境是否存在可用通道：
 
-没有配置 `TIKHUB_API_KEY` 时，审核仍会按静态规则和案例库继续。动态小红书搜索只是可选增强；普通创作者帖子和评论区讨论不是平台规则，只能作为症状和排查线索。
+- 用户指定 TikHub、某个插件或某个 Skill 时，只使用用户指定的通道；不可用时说明情况，不静默换源。
+- 用户没有指定通道时，可以优先使用目标平台专用的浏览插件或 Skill；也可以在已经配置并可调用时使用 TikHub，或通过 `agent-browser` 一类真实浏览工具访问公开结果。
+- 浏览器通道应遵守登录、访问权限、验证码、频率限制和平台规则，不绕过访问控制。
+- 所有实时通道失败时，静态合规审核继续进行；不能把“搜索失败”写成“没有相似案例”。
+
+仓库自带的 [tools/xhs_dynamic_evidence.py](./tools/xhs_dynamic_evidence.py) 是 TikHub 的一个可选小红书适配器。它需要 `TIKHUB_API_KEY`，相关 SDK 和接入说明见 [TikHub-API-Python-SDK](https://github.com/TikHub/TikHub-API-Python-SDK)。调用可能产生 TikHub 费用或消耗账号额度，因此不会作为默认审核步骤。
+
+示例：
+
+> 使用 self-media-compliance-review 审核这条笔记，并实时搜索一下近期相似的导流处罚案例。当前有什么可用搜索通道就用什么；如果都不可用，继续静态审核并说明未搜索。
+
+> 使用 self-media-compliance-review 审核这条笔记，只通过 TikHub 搜近期相似案例；TikHub 不可用时不要换成其他来源。
+
+实时帖子和评论必须单独放在“实时平台证据（可选）”中，注明数据通道、搜索词、检索时间、内容 ID 或 URL、发布时间和证据限制。普通创作者帖子和评论区讨论不是平台规则，只能作为症状和排查线索。
 
 建议提供：
 

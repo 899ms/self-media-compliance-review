@@ -39,9 +39,17 @@ def _debug(message: str) -> None:
 
 
 def _env_files() -> list[Path]:
+    """Candidate .env files searched in order. First hit wins.
+
+    Project-local ``.env`` comes first (gitignored, safe to commit infrastructure
+    without leaking keys).  ``~/.claude/.env`` is the user-level fallback.
+    """
     custom = os.environ.get("TIKHUB_ENV_FILE")
     files = [Path(custom)] if custom else []
     if os.environ.get("TIKHUB_NO_ENV_FILE") != "1":
+        # Repo root is parents[3]: tikhub_client.py → lib/ → tikhub/ → tools/ → repo/
+        repo_root = Path(__file__).resolve().parents[3]
+        files.append(repo_root / ".env")
         files.append(Path.home() / ".claude" / ".env")
     return files
 
@@ -123,6 +131,7 @@ class TikhubClient:
     def _save_session(self, session_id: str) -> None:
         try:
             self._session_file.write_text(json.dumps({"session_id": session_id, "created_at": time.time()}))
+            self._session_file.chmod(0o600)
         except OSError as exc:
             _debug(f"could not cache session: {exc}")
 

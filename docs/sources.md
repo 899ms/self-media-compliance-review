@@ -90,12 +90,23 @@ Notes: Community Covenant 2.0 is used as directional context for 真诚分享, �
 
 ## Optional Live Evidence
 
-- TikHub Xiaohongshu search/comment tools, used only when `TIKHUB_API_KEY` is configured:
-  - `xiaohongshu_web_v3_fetch_search_notes`
+Live evidence is opt-in. Do not search only because a connector is installed or
+configured. Search only when the user explicitly requests current platform
+content, recent cases, or live discussion, and identify the selected channel in
+the report.
+
+Available channels may include a target-platform browser plugin/Skill, a real
+browser tool such as `agent-browser`, or TikHub. If the user specifies a
+channel, do not silently substitute another one. TikHub Xiaohongshu
+search/comment tools require `TIKHUB_API_KEY`:
+
+  - `xiaohongshu_app_v2_search_notes`
   - `xiaohongshu_web_v2_fetch_note_comments`
   - `xiaohongshu_web_v2_fetch_sub_comments`
 
-Live Xiaohongshu creator notes and comments are discussion samples. 评论区讨论不是平台规则; use them only as symptom and remediation clues.
+Live creator posts and comments are discussion samples. 评论区讨论不是平台规则;
+use them only as symptom and remediation clues. A failed or unavailable live
+search must not be reported as evidence that no recent cases exist.
 
 ## Cross-Platform Regulators
 
