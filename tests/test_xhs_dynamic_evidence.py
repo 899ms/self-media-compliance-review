@@ -147,36 +147,32 @@ class FakeClient:
         self.calls.append((tool_name, arguments))
         if tool_name == "xiaohongshu_app_v2_search_notes":
             return load_fixture("xhs_app_search_notes.json")
-        if tool_name == "xiaohongshu_web_v3_fetch_search_notes":
-            return load_fixture("xhs_search_notes.json")
         if tool_name == "xiaohongshu_web_v2_fetch_note_comments":
             return load_fixture("xhs_note_comments.json")
         raise AssertionError(tool_name)
 
 
-class FallbackClient:
+class FlakySearchClient:
+    """Fails the first search call, then behaves like FakeClient."""
+
     def __init__(self):
         self.calls = []
 
     def call(self, tool_name, arguments):
         self.calls.append((tool_name, arguments))
         if tool_name == "xiaohongshu_app_v2_search_notes":
-            return {"error": "RetryError[<HTTPStatusError>]"}
-        if tool_name == "xiaohongshu_web_v3_fetch_search_notes":
-            return load_fixture("xhs_search_notes.json")
+            if len(self.calls) == 1:
+                raise RuntimeError("search endpoint timed out")
+            return load_fixture("xhs_app_search_notes.json")
+        if tool_name == "xiaohongshu_web_v2_fetch_note_comments":
+            return load_fixture("xhs_note_comments.json")
         raise AssertionError(tool_name)
 
 
-class ExceptionFallbackClient:
-    def __init__(self):
-        self.calls = []
-
+class ErrorPayloadClient:
     def call(self, tool_name, arguments):
-        self.calls.append((tool_name, arguments))
         if tool_name == "xiaohongshu_app_v2_search_notes":
-            raise RuntimeError("app search timed out")
-        if tool_name == "xiaohongshu_web_v3_fetch_search_notes":
-            return load_fixture("xhs_search_notes.json")
+            return {"error": "RetryError[<HTTPStatusError>]"}
         raise AssertionError(tool_name)
 
 
@@ -189,8 +185,6 @@ class CommentFailureClient:
         self.calls.append((tool_name, arguments, self.timeout))
         if tool_name == "xiaohongshu_app_v2_search_notes":
             return load_fixture("xhs_app_search_notes.json")
-        if tool_name == "xiaohongshu_web_v3_fetch_search_notes":
-            return load_fixture("xhs_search_notes.json")
         if tool_name == "xiaohongshu_web_v2_fetch_note_comments":
             raise RuntimeError("comment endpoint timed out")
         raise AssertionError(tool_name)
@@ -207,26 +201,9 @@ def test_run_search_uses_xhs_app_v2_search_tool_first():
     assert len(notes) == 1
 
 
-def test_run_search_falls_back_to_web_v3_when_app_v2_returns_error_payload():
-    client = FallbackClient()
-    notes = run_search(client, "小红书 导流 违规 申诉", max_notes=1)
-
-    assert client.calls == [
-        ("xiaohongshu_app_v2_search_notes", {"keyword": "小红书 导流 违规 申诉", "page": 1}),
-        ("xiaohongshu_web_v3_fetch_search_notes", {"keyword": "小红书 导流 违规 申诉", "page": 1}),
-    ]
-    assert notes[0]["note_id"] == "693bdcaf000000001e00ec5f"
-
-
-def test_run_search_falls_back_to_web_v3_when_app_v2_raises():
-    client = ExceptionFallbackClient()
-    notes = run_search(client, "小红书 导流 违规 申诉", max_notes=1)
-
-    assert client.calls == [
-        ("xiaohongshu_app_v2_search_notes", {"keyword": "小红书 导流 违规 申诉", "page": 1}),
-        ("xiaohongshu_web_v3_fetch_search_notes", {"keyword": "小红书 导流 违规 申诉", "page": 1}),
-    ]
-    assert notes[0]["note_id"] == "693bdcaf000000001e00ec5f"
+def test_run_search_raises_when_search_returns_error_payload():
+    with pytest.raises(RuntimeError, match="RetryError"):
+        run_search(ErrorPayloadClient(), "小红书 导流 违规 申诉")
 
 
 def test_run_comments_uses_web_v2_comments_without_xsec_token():
@@ -250,6 +227,19 @@ def test_run_diagnose_combines_queries_notes_and_comments():
     assert report["comments"][0]["note_id"] == "63e3a1b6000000001d0121ff"
 
 
+def test_run_diagnose_keeps_notes_and_warns_when_one_query_fails():
+    client = FlakySearchClient()
+    report = run_diagnose(client, "笔记被判导流，申诉失败", "小红书", max_notes=1, max_comments=0)
+
+    assert report["dynamic_search_enabled"] is True
+    assert report["notes"][0]["note_id"] == "63e3a1b6000000001d0121ff"
+    assert report["comments"] == []
+    assert any(
+        warning.startswith("search failed for ") and "search endpoint timed out" in warning
+        for warning in report["warnings"]
+    )
+
+
 def test_run_diagnose_keeps_notes_and_warns_when_comments_fail():
     client = CommentFailureClient()
     report = run_diagnose(client, "笔记被判导流，申诉失败", "小红书", max_notes=1, max_comments=1, comment_timeout=15)
@@ -262,22 +252,27 @@ def test_run_diagnose_keeps_notes_and_warns_when_comments_fail():
     assert client.timeout == 60
 
 
-def test_docs_describe_dynamic_search_as_optional_and_xhs_only():
+def test_docs_describe_live_search_as_explicitly_requested_and_optional():
     skill = Path("SKILL.md").read_text()
     readme = Path("README.md").read_text()
     sources = Path("docs/sources.md").read_text()
 
-    assert "动态小红书相似案例" in skill
-    assert "可选增强" in skill
-    assert "未配置 `TIKHUB_API_KEY`" in skill
-    assert "只通过小红书" in readme
+    assert "Live search is off by default" in skill
+    assert "user explicitly asks" in skill
+    assert "The presence of a live-search channel is not authorization" in skill
+    assert "实时检索默认关闭" in readme
+    assert "不会因此自动联网搜索" in readme
+    assert "小红书浏览插件" in readme
+    assert "`agent-browser`" in readme
     assert "https://github.com/TikHub/TikHub-API-Python-SDK" in readme
     assert "`TIKHUB_API_KEY`" in readme
-    assert "可能产生 TikHub API 调用费用" in readme
-    assert "如果需要实时查询" in readme
+    assert "可能产生 TikHub 费用" in readme
+    assert "用户指定" in readme
     assert "python3 tools/xhs_dynamic_evidence.py" not in readme
     assert "```bash" not in readme
     assert "TikHub" in sources
+    assert "explicitly requests" in sources
+    assert "agent-browser" in sources
     assert "评论区讨论不是平台规则" in sources
 
 
