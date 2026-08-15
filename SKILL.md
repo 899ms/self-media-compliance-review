@@ -67,6 +67,10 @@ When using recent cases, load the index first, then the matching platform case f
 - B站: `references/cases/bilibili.md`.
 - 抖音电商/带货: `references/cases/ecommerce-cases.md`.
 
+When a review uses a remote video URL, TikHub, OCR/ASR, Gemini, or another
+multimodal model, read `references/video-evidence-integrity.md` before acquiring
+media or assigning findings.
+
 ## Local Evidence Search
 
 Local search is available by default and does not require live-search permission
@@ -99,9 +103,12 @@ available in the current environment and use a suitable available channel:
    silently substitute another source if it is unavailable.
 2. Otherwise, prefer a target-platform-specific browser plugin or Skill when it
    can read the requested public content.
-3. TikHub is an optional adapter. Use `tools/xhs_dynamic_evidence.py diagnose`
-   for Xiaohongshu only when `TIKHUB_API_KEY` is configured and TikHub search is
-   available.
+3. TikHub is an optional direct REST adapter. Use only the bundled
+   `tools/tikhub/bin/tikhub` CLI or `tools/tikhub/lib/tikhub_client.py`, which
+   call documented `https://api.tikhub.io/api/v1/...` endpoints. Never invoke a
+   TikHub MCP server, `mcp.tikhub.io`, or a TikHub MCP tool. Use
+   `tools/xhs_dynamic_evidence.py diagnose` for Xiaohongshu search, or cataloged
+   Douyin REST endpoints for an explicitly requested video lookup.
 4. A real browser automation tool such as `agent-browser` may be used when it
    can access the public search/results page. Respect login, access, CAPTCHA,
    rate-limit, and platform restrictions; do not bypass them.
@@ -121,6 +128,74 @@ section with provider, search terms, target platform, sample time, content IDs
 or URLs, publish dates when available, and limitations. Ordinary creator posts
 and comments are discussion samples, not platform rules, and cannot determine
 the final severity by themselves.
+
+Keep live API responses, downloaded media, signed URLs, model outputs, logs,
+and generated reports under a gitignored local evidence directory. Never commit
+API keys, cookies, authorization tokens, signed media URLs, raw creator data, or
+paid lookup results. Public commits may contain only reusable code, endpoint
+schemas, tests, Skill instructions, and static references.
+
+## Video File Analysis
+
+When the user provides a local video file and asks whether it may violate a
+platform rule, use `tools/analyze_video.py` to prepare a local evidence package
+before assigning a risk level. This local media processing does not require
+live-search permission and must not trigger TikHub or browser search by itself.
+Follow `references/video-evidence-integrity.md` for remote acquisition, source
+ledger, OCR/ASR uncertainty, full-video model review, and mismatch handling.
+
+The tool requires `ffmpeg` and `ffprobe`. It produces:
+
+- `manifest.json`: media metadata, source hash, evidence coverage, exact frame
+  timecodes, audio/subtitle status, technical signals, and text precheck hits.
+- `review_brief.md`: a compact checklist and evidence index for the agent.
+- `frames/`: opening 0-5s, scene-change, periodic, and ending frames.
+- `contact_sheets/`: overview sheets for visual triage.
+- `audio.wav`: a mono 16 kHz review copy when the video has an audio stream.
+- Embedded/sidecar subtitle references and, only when explicitly enabled, a
+  local Whisper transcript.
+
+Example preparation command:
+
+`python3 tools/analyze_video.py --video <video.mp4> --platform <douyin> --output-dir <qa/video-evidence>`
+
+Use repeated `--text-file <script-or-subtitle>` arguments when a transcript,
+subtitle, or voiceover script is provided separately from the video.
+
+Add `--transcribe` only when local Whisper is installed and transcription is
+needed. Whisper models may require a download; do not initiate a model download
+without telling the user. A supplied subtitle or script can be reviewed without
+Whisper, but subtitles do not prove that the audible voiceover is identical.
+
+After preparation:
+
+1. Read `manifest.json` and `review_brief.md`.
+2. Inspect every contact sheet, then inspect individual original frames at all
+   suspected timecodes. Pay special attention to the cover/first frame, first
+   0-5 seconds, scene changes, product/CTA segments, sensitive visuals, and end.
+3. Review audible speech and BGM. Use a supplied transcript, an available audio
+   review capability, or the optional local Whisper transcript. If audio cannot
+   be reviewed, add it to `待核验` and do not return `Pass`.
+4. Review visible subtitles, stickers, watermarks, QR codes, contact details,
+   product claims, before/after imagery, AI labels, and privacy identifiers.
+5. Map each observed element to the universal and target-platform references,
+   with an exact timecode/frame pointer and a concrete remediation.
+6. Treat automated black/silence detection and text claim matches only as
+   precheck signals. The tool intentionally leaves the final verdict
+   `not_assigned`; the agent must determine `Pass/Low/Medium/High/Blocker` from
+   the evidence and clearly state coverage limitations.
+7. If Gemini or another multimodal model is available and the user requests or
+   authorizes it, submit the actual reviewable video file, preserve the raw
+   structured response locally, and require an explicit successful result.
+   Never treat a failure fallback, default `Pass`, contact-sheet-only analysis,
+   or a model statement without confirmable timecode evidence as fact.
+
+Frame sampling can miss very brief content. For high-risk, long, fast-cut, or
+regulated-domain videos, increase the sample count or inspect the full timeline.
+If only a remote URL is supplied, use an already available and authorized
+browser/download channel to obtain reviewable evidence. If the video cannot be
+accessed, state that it was not reviewed and request a local file, transcript,
+or screenshots; never infer a Pass from an inaccessible URL.
 
 For new platforms, add one reference file under `references/<platform>.md` with:
 
@@ -165,7 +240,7 @@ Do not overload this `SKILL.md` with platform rule catalogs; keep detailed platf
 4. **Apply platform references**
    - Cite platform category ids or article names where available.
    - When using recent examples, separate `官方/监管`, `媒体转述`, and `小红书讨论样本`; do not treat creator comments as binding rules.
-   - When optional dynamic Xiaohongshu evidence is used, put it in a separate `动态小红书相似案例` section with search terms, sample date, note ids, and the evidence limitation.
+   - When optional live evidence is used, put it in a separate `实时平台证据（可选）` section with search terms, sample date, note ids, and the evidence limitation.
    - Prefer the most specific matching category. If multiple categories apply, list all but mark the primary risk.
    - When the platform rule depends on account history or qualifications that are not available, mark `待核验`.
    - Beyond official rules, platforms have many unwritten/隐形 rules. Treat creator-posted experience and comment-section discussion in the case files as a valuable supplement that surfaces these hidden enforcement patterns — but as symptoms and disputed edge cases, not as binding rules.
@@ -195,6 +270,12 @@ Every finding should include at least one evidence pointer:
 - Screenshot/frame description.
 - Missing proof: authorization, qualification, source, product price, activity scope, link consistency.
 - For platform discussion evidence: keyword searched, note id or visible account, comment evidence if used, publish date, sample date, and whether it is official-account material or creator-side discussion.
+
+Maintain a source ledger that separates user-supplied caption, platform/TikHub
+metadata, downloaded media, local frame/audio observations, OCR/ASR output, and
+multimodal-model output. If they disagree, report the mismatch and its possible
+technical causes as `待核验`; do not decide which source is true or accuse a
+party of manipulation without independent evidence.
 
 Do not report a violation solely because a topic is sensitive. Explain what visible/audible element creates the risk and which rule it maps to.
 
@@ -366,6 +447,8 @@ Both tools output JSON for machine-to-machine handoffs (e.g. `capsule-cinema`, `
 
 When reviewing a final video package:
 
+- Prepare local video evidence with `tools/analyze_video.py` when a video file is available.
+- Keep generated frames, audio, transcripts, and manifests under `qa/` or `internal/`; they are review artifacts, not publishable assets.
 - Save the report as `qa/compliance_review.md` when the project has a release package.
 - If the package separates public/internal files, keep risk notes in `qa/` or `internal/`, not in publishable `public/` copy.
 - Update the release manifest or handoff notes with the compliance report path and final risk level.
@@ -385,3 +468,6 @@ When reviewing a final video package:
 - Missing 千川低质素材 patterns (picture carousel, big-character posters, black borders) that don't look like rule violations but trigger promotion rejection.
 - Skipping the product-consistency check: video display, voiceover, subtitles, and product link must all agree on brand, specs, price, and gifts.
 - Marking regulated-category products (食品, 化妆品, 医疗器械, 母婴, 宠物, 金融) as Pass without qualification evidence.
+- Calling sampled keyframes "逐帧语义审核" or claiming every decoded frame was reviewed when only contact sheets or periodic frames were inspected.
+- Treating OCR, Whisper, or model-inferred speech as exact dialogue without confirming visible subtitles, audio, or a supplied transcript.
+- Treating a preallocated, partial, stalled, or `ffprobe`-invalid download as a complete original video.

@@ -1,6 +1,6 @@
 # Rule Sources
 
-Last source audit: 2026-06-20.
+Last source audit: 2026-08-11 (platform references: 2026-06-20; e-commerce references: 2026-08-11).
 
 Recent case audit: 2026-06-20.
 
@@ -97,12 +97,14 @@ the report.
 
 Available channels may include a target-platform browser plugin/Skill, a real
 browser tool such as `agent-browser`, or TikHub. If the user specifies a
-channel, do not silently substitute another one. TikHub Xiaohongshu
-search/comment tools require `TIKHUB_API_KEY`:
+channel, do not silently substitute another one. TikHub access in this
+repository uses only documented direct REST endpoints under
+`https://api.tikhub.io/api/v1/...`; do not use TikHub MCP or `mcp.tikhub.io`.
+TikHub Xiaohongshu search/comment tools require `TIKHUB_API_KEY`:
 
   - `xiaohongshu_app_v2_search_notes`
-  - `xiaohongshu_web_v2_fetch_note_comments`
-  - `xiaohongshu_web_v2_fetch_sub_comments`
+  - `xiaohongshu_app_v2_get_note_comments`
+  - `xiaohongshu_app_v2_get_note_sub_comments`
 
 Live creator posts and comments are discussion samples. 评论区讨论不是平台规则;
 use them only as symptom and remediation clues. A failed or unavailable live

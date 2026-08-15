@@ -204,7 +204,7 @@ def _table_cell(value: Any) -> str:
 
 def render_markdown(report: dict) -> str:
     lines = [
-        "## 动态小红书相似案例",
+        "## 实时平台证据（可选）",
         "",
         f"- 状态: {'已启用' if report.get('dynamic_search_enabled') else '未启用'}",
         f"- 检索时间: {report.get('sampled_at', '')}",
@@ -251,7 +251,7 @@ def run_search(client, query: str, max_notes: int = 8) -> list[dict]:
 
 
 def run_comments(client, note_id: str, max_comments: int = 20) -> list[dict]:
-    payload = client.call("xiaohongshu_web_v2_fetch_note_comments", {"note_id": note_id})
+    payload = client.call("xiaohongshu_app_v2_get_note_comments", {"note_id": note_id})
     return extract_comments(payload, note_id=note_id, max_comments=max_comments)
 
 
