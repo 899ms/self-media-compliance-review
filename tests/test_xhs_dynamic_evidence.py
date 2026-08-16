@@ -107,7 +107,7 @@ def test_render_markdown_separates_dynamic_evidence_from_rules():
     markdown = render_markdown(report)
 
     assert report["dynamic_search_enabled"] is True
-    assert "## 动态小红书相似案例" in markdown
+    assert "## 实时平台证据（可选）" in markdown
     assert "检索时间: 2026-06-30" in markdown
     assert "评论区讨论不是平台规则，只作为排查线索" in markdown
     assert "693bdcaf000000001e00ec5f" in markdown
@@ -147,7 +147,7 @@ class FakeClient:
         self.calls.append((tool_name, arguments))
         if tool_name == "xiaohongshu_app_v2_search_notes":
             return load_fixture("xhs_app_search_notes.json")
-        if tool_name == "xiaohongshu_web_v2_fetch_note_comments":
+        if tool_name == "xiaohongshu_app_v2_get_note_comments":
             return load_fixture("xhs_note_comments.json")
         raise AssertionError(tool_name)
 
@@ -164,7 +164,7 @@ class FlakySearchClient:
             if len(self.calls) == 1:
                 raise RuntimeError("search endpoint timed out")
             return load_fixture("xhs_app_search_notes.json")
-        if tool_name == "xiaohongshu_web_v2_fetch_note_comments":
+        if tool_name == "xiaohongshu_app_v2_get_note_comments":
             return load_fixture("xhs_note_comments.json")
         raise AssertionError(tool_name)
 
@@ -185,7 +185,7 @@ class CommentFailureClient:
         self.calls.append((tool_name, arguments, self.timeout))
         if tool_name == "xiaohongshu_app_v2_search_notes":
             return load_fixture("xhs_app_search_notes.json")
-        if tool_name == "xiaohongshu_web_v2_fetch_note_comments":
+        if tool_name == "xiaohongshu_app_v2_get_note_comments":
             raise RuntimeError("comment endpoint timed out")
         raise AssertionError(tool_name)
 
@@ -206,12 +206,12 @@ def test_run_search_raises_when_search_returns_error_payload():
         run_search(ErrorPayloadClient(), "小红书 导流 违规 申诉")
 
 
-def test_run_comments_uses_web_v2_comments_without_xsec_token():
+def test_run_comments_uses_rest_app_v2_comments_without_xsec_token():
     client = FakeClient()
     comments = run_comments(client, "693bdcaf000000001e00ec5f", max_comments=1)
 
     assert client.calls[0] == (
-        "xiaohongshu_web_v2_fetch_note_comments",
+        "xiaohongshu_app_v2_get_note_comments",
         {"note_id": "693bdcaf000000001e00ec5f"},
     )
     assert len(comments) == 1
@@ -264,7 +264,8 @@ def test_docs_describe_live_search_as_explicitly_requested_and_optional():
     assert "不会因此自动联网搜索" in readme
     assert "小红书浏览插件" in readme
     assert "`agent-browser`" in readme
-    assert "https://github.com/TikHub/TikHub-API-Python-SDK" in readme
+    assert "https://api.tikhub.io/api/v1/" in readme
+    assert "禁止请求 `mcp.tikhub.io`" in readme
     assert "`TIKHUB_API_KEY`" in readme
     assert "可能产生 TikHub 费用" in readme
     assert "用户指定" in readme
@@ -281,7 +282,8 @@ def test_tikhub_client_wraps_socket_timeout_as_tikhub_error(monkeypatch):
         raise TimeoutError("read timed out")
 
     monkeypatch.setattr(tikhub_client.urllib.request, "urlopen", raise_timeout)
+    monkeypatch.setattr(tikhub_client.time, "sleep", lambda _seconds: None)
     client = TikhubClient("xiaohongshu", api_key="fake-key", timeout=1)
 
-    with pytest.raises(TikhubError, match="network timeout"):
-        client._post({"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {}}, session_id=None)
+    with pytest.raises(TikhubError, match="network error"):
+        client._request("GET", "/api/v1/xiaohongshu/example", {}, set(), set())

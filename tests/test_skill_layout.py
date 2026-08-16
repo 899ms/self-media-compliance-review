@@ -10,6 +10,11 @@ def test_single_skill_repository_uses_root_level_layout():
     assert Path("references/qianchuan-low-quality.md").is_file()
     assert Path("references/ecommerce-claims.md").is_file()
     assert Path("references/cases/ecommerce-cases.md").is_file()
+    assert Path("references/video-evidence-integrity.md").is_file()
+    assert Path("tools/search_local_evidence.py").is_file()
+    assert Path("tools/analyze_video.py").is_file()
+    assert Path("tools/tikhub/lib/tikhub_client.py").is_file()
+    assert Path("tools/tikhub/references/tools-douyin.json").is_file()
     assert not Path("skills/self-media-compliance-review/SKILL.md").exists()
 
 
@@ -50,6 +55,7 @@ def test_skill_md_includes_ecommerce_routing():
     assert "qianchuan-low-quality.md" in skill
     assert "ecommerce-claims.md" in skill
     assert "ecommerce-cases.md" in skill
+    assert "tools/search_local_evidence.py" in skill
     assert "商品一致性审核" in skill
     assert "machine-readable" in skill.lower() or "json" in skill.lower()
     assert "发布前合规" in skill
