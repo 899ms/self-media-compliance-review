@@ -237,3 +237,9 @@ Traceable sources:
 
 - Xiaohongshu discussion sample, keywords `视频号 限流/违规/封号/原创/带货`, sample date 2026-06-23.
 - Xiaohongshu comment sample, note ids `67458a610000000202027543`, `67c5c283000000002903115a`, `681d8ef0000000002301690b`, sample date 2026-06-23.
+
+<!-- auto: scraped post 672613a8000000003c014cc5 -->
+<!-- auto: scraped post 672613a8000000003c014cc5 -->
+- 小红书讨论样本 `672613a8000000003c014cc5` 知一工作室 「视频号减少推荐，近期亲测有效的处理方法」 ~💬116 👍146 (sample date 2026-08-31). 视频号减少推荐的处理方法（亲测）。Review use: 减少推荐处理样本——先排查内容风险（导流/原创/AI标识/账号操作）再按官方路径申诉；无通知时标注 待核验: 推荐状态；与在库视频号申诉样本 `67c5c283...`、`681d8ef0...` 配套。
+<!-- /post 672613a8000000003c014cc5 -->
+<!-- /post 672613a8000000003c014cc5 -->

@@ -7,7 +7,6 @@ import argparse
 import json
 import re
 import sys
-from typing import Any
 
 # Patterns that flag risky claims
 ABSOLUTE_PATTERNS = [
@@ -19,7 +18,6 @@ ABSOLUTE_PATTERNS = [
     r"绝对",
     r"保证",
     r"肯定",
-    r"必须",
 ]
 
 EFFICACY_PATTERNS = [
@@ -68,6 +66,13 @@ REGULATED_TOPIC_PATTERNS = [
     (r"(收益率|回报率|年化|稳赚|保本|无风险|翻倍)", "金融承诺"),
 ]
 
+NEGATING_CONTEXT = re.compile(r"(?:不|并不|不能|不会|不要|别|禁止|避免|删除|去掉|慎用|不能写|不能说)$")
+
+
+def _is_negated_or_instructional(text: str, start: int) -> bool:
+    prefix = re.sub(r"\s+", "", text[max(0, start - 10) : start])
+    return bool(NEGATING_CONTEXT.search(prefix))
+
 
 def extract_claims(text: str) -> dict:
     """Extract all claim types from text and classify risk levels."""
@@ -83,6 +88,8 @@ def extract_claims(text: str) -> dict:
 
     for pattern in ABSOLUTE_PATTERNS:
         for match in re.finditer(pattern, text):
+            if _is_negated_or_instructional(text, match.start()):
+                continue
             results["absolutes"].append({
                 "text": match.group(),
                 "position": match.start(),
@@ -93,6 +100,8 @@ def extract_claims(text: str) -> dict:
 
     for pattern in EFFICACY_PATTERNS:
         for match in re.finditer(pattern, text):
+            if _is_negated_or_instructional(text, match.start()):
+                continue
             results["efficacy"].append({
                 "text": match.group(),
                 "position": match.start(),
@@ -103,6 +112,8 @@ def extract_claims(text: str) -> dict:
 
     for pattern in PRICE_PATTERNS:
         for match in re.finditer(pattern, text):
+            if _is_negated_or_instructional(text, match.start()):
+                continue
             results["price"].append({
                 "text": match.group(),
                 "position": match.start(),
@@ -113,6 +124,8 @@ def extract_claims(text: str) -> dict:
 
     for pattern in DATA_PATTERNS:
         for match in re.finditer(pattern, text):
+            if _is_negated_or_instructional(text, match.start()):
+                continue
             results["data"].append({
                 "text": match.group(),
                 "position": match.start(),
@@ -123,6 +136,8 @@ def extract_claims(text: str) -> dict:
 
     for pattern in COMPARISON_PATTERNS:
         for match in re.finditer(pattern, text):
+            if _is_negated_or_instructional(text, match.start()):
+                continue
             results["comparisons"].append({
                 "text": match.group(),
                 "position": match.start(),
@@ -133,6 +148,8 @@ def extract_claims(text: str) -> dict:
 
     for pattern, topic_label in REGULATED_TOPIC_PATTERNS:
         for match in re.finditer(pattern, text):
+            if _is_negated_or_instructional(text, match.start()):
+                continue
             results["regulated_topics"].append({
                 "text": match.group(),
                 "position": match.start(),

@@ -5,8 +5,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from dataclasses import dataclass, field
+from decimal import Decimal, InvalidOperation
 from typing import Any
 
 
@@ -36,6 +38,7 @@ class VideoClaims:
     style_color_mentioned: str = ""
     specs_mentioned: dict = field(default_factory=dict)
     price_mentioned: str = ""
+    original_price_mentioned: str = ""
     gifts_mentioned: list[str] = field(default_factory=list)
     activity_mentioned: str = ""
     deadline_mentioned: str = ""
@@ -146,6 +149,29 @@ def _find_price(skus: list[dict]) -> str:
     return ", ".join(sorted(prices)) if prices else ""
 
 
+def _price_values(*values: Any) -> set[Decimal]:
+    """Extract normalized monetary values without using substring matching."""
+    prices: set[Decimal] = set()
+    for value in values:
+        if value is None:
+            continue
+        if isinstance(value, (int, float, Decimal)):
+            candidates = [str(value)]
+        else:
+            normalized = str(value).replace(",", "")
+            candidates = re.findall(r"(?<!\d)(\d+(?:\.\d{1,2})?)(?!\d)", normalized)
+        for candidate in candidates:
+            try:
+                prices.add(Decimal(candidate).normalize())
+            except InvalidOperation:
+                continue
+    return prices
+
+
+def _format_prices(values: set[Decimal]) -> str:
+    return ", ".join(format(value, "f") for value in sorted(values))
+
+
 def compare_str(video_val: str, product_val: str) -> dict:
     """Compare two string fields."""
     video_val = _to_str(video_val)
@@ -193,17 +219,45 @@ def compare_specs(video_specs: dict, product_skus: list[dict]) -> dict:
     return {"result": "不一致", "reason": "; ".join(mismatches)}
 
 
-def compare_price(video_price: str, product_skus: list[dict]) -> dict:
+def compare_price(
+    video_price: str,
+    product_skus: list[dict],
+    current_price: str = "",
+) -> dict:
     """Compare price claims."""
     video_price = _to_str(video_price)
-    product_price = _find_price(product_skus)
     if not video_price:
         return {"result": "待核验", "reason": "视频中未声明价格"}
-    if not product_price:
-        return {"result": "待核验", "reason": "SKU 价格信息缺失"}
-    if video_price in product_price or product_price in video_price:
-        return {"result": "一致", "reason": f"视频: {video_price}；SKU: {product_price}"}
-    return {"result": "不一致", "reason": f"视频: {video_price}；SKU: {product_price}"}
+
+    sku_prices = [sku.get("price") for sku in product_skus if sku.get("price") is not None]
+    video_values = _price_values(video_price)
+    product_values = _price_values(current_price, *sku_prices)
+    if not video_values:
+        return {"result": "待核验", "reason": f"无法解析视频价格: {video_price}"}
+    if not product_values:
+        return {"result": "待核验", "reason": "详情页当前价和 SKU 价格均缺失"}
+
+    matched = video_values & product_values
+    reason = f"视频: {_format_prices(video_values)}；详情页/SKU: {_format_prices(product_values)}"
+    if matched:
+        return {"result": "一致", "reason": reason}
+    return {"result": "不一致", "reason": reason}
+
+
+def compare_activity(video_activity: str, product_rules: str) -> dict:
+    """Compare a stated promotion with the captured activity rules."""
+    video_activity = _to_str(video_activity)
+    product_rules = _to_str(product_rules)
+    if not video_activity:
+        return {"result": "待核验", "reason": "视频中未声明活动规则"}
+    if not product_rules:
+        return {"result": "待核验", "reason": "详情页活动规则缺失"}
+
+    compact_video = re.sub(r"[\s，,。；;：:]", "", video_activity)
+    compact_product = re.sub(r"[\s，,。；;：:]", "", product_rules)
+    if compact_video == compact_product or compact_video in compact_product:
+        return {"result": "一致", "reason": f"视频活动可在详情页规则中确认: {video_activity}"}
+    return {"result": "不一致", "reason": f"视频: {video_activity}；详情页: {product_rules}"}
 
 
 def compare_gifts(video_gifts: list[str], product_gifts: list[str]) -> dict:
@@ -252,6 +306,7 @@ def compare_product_link(
         style_color_mentioned=video_claims.get("style_color_mentioned", ""),
         specs_mentioned=video_claims.get("specs_mentioned", {}),
         price_mentioned=video_claims.get("price_mentioned", ""),
+        original_price_mentioned=video_claims.get("original_price_mentioned", ""),
         gifts_mentioned=video_claims.get("gifts_mentioned", []),
         activity_mentioned=video_claims.get("activity_mentioned", ""),
         deadline_mentioned=video_claims.get("deadline_mentioned", ""),
@@ -286,8 +341,15 @@ def compare_product_link(
     results.append({
         "check_id": "商品三一致-价格",
         "label": "价格一致性",
-        **compare_price(claims.price_mentioned, product.skus),
+        **compare_price(claims.price_mentioned, product.skus, product.current_price),
     })
+
+    if claims.original_price_mentioned:
+        results.append({
+            "check_id": "商品三一致-原价",
+            "label": "原价/划线价一致性",
+            **compare_price(claims.original_price_mentioned, [], product.original_price),
+        })
 
     # Gifts
     results.append({
@@ -295,6 +357,13 @@ def compare_product_link(
         "label": "赠品一致性",
         **compare_gifts(claims.gifts_mentioned, product.gifts),
     })
+
+    if claims.activity_mentioned or product.activity_rules:
+        results.append({
+            "check_id": "活动规则完整性",
+            "label": "活动规则一致性",
+            **compare_activity(claims.activity_mentioned, product.activity_rules),
+        })
 
     # Activity deadline
     results.append({
@@ -312,9 +381,18 @@ def compare_product_link(
             "reason": f"视频声明: {'; '.join(claims.efficacy_claims[:5])}；需提供资质证据",
         })
 
+    if claims.data_claims:
+        results.append({
+            "check_id": "电商数据声明",
+            "label": "销量/好评等数据声明",
+            "result": "待核验",
+            "reason": f"视频声明: {'; '.join(claims.data_claims[:5])}；需核验数据来源、口径和时间范围",
+        })
+
     # Regulated category
     category_risk = None
-    for cat_key, cat_info in REGULATED_CATEGORIES.items():
+    for cat_key in sorted(REGULATED_CATEGORIES, key=len, reverse=True):
+        cat_info = REGULATED_CATEGORIES[cat_key]
         if cat_key in product.category or cat_key in product.title:
             category_risk = {
                 "check_id": f"行业资质-{cat_key}",
@@ -326,6 +404,7 @@ def compare_product_link(
             break
 
     report = {
+        "schema_version": "1.0",
         "product_url": product.url,
         "captured_at": product.captured_at or "未记录",
         "comparisons": results,

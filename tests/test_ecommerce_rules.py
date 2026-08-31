@@ -1,16 +1,13 @@
 import json
 from pathlib import Path
 
-import pytest
-
 from tools.compare_product_link import (
     compare_product_link,
     compare_str,
     compare_specs,
     compare_price,
+    compare_activity,
     compare_gifts,
-    ProductInfo,
-    VideoClaims,
 )
 from tools.extract_claims import extract_claims, summarize_claims
 
@@ -30,6 +27,7 @@ def test_compare_product_link_all_consistent():
         data["product"], data["video_claims_consistent"], include_qianchuan=False
     )
 
+    assert report["schema_version"] == "1.0"
     for comp in report["comparisons"]:
         assert comp["result"] == "一致", f"{comp['label']} should be consistent, got: {comp}"
 
@@ -139,6 +137,26 @@ def test_compare_price_missing():
     assert result["result"] == "待核验"
 
 
+def test_compare_price_does_not_use_substring_matching():
+    result = compare_price("9.9", [{"price": "19.9"}])
+    assert result["result"] == "不一致"
+
+
+def test_compare_price_uses_current_price_without_skus():
+    result = compare_price("￥29.90元", [], "29.9")
+    assert result["result"] == "一致"
+
+
+def test_compare_price_accepts_one_value_from_multiple_skus():
+    result = compare_price("券后价 89 元", [{"price": "99"}, {"price": "89.00"}])
+    assert result["result"] == "一致"
+
+
+def test_compare_activity_requires_matching_promotion():
+    assert compare_activity("满2件减20", "满2件减20元，活动至8月31日")["result"] == "一致"
+    assert compare_activity("满2件减30", "满2件减20元，活动至8月31日")["result"] == "不一致"
+
+
 # --- compare_gifts ---
 
 def test_compare_gifts_match():
@@ -198,6 +216,43 @@ def test_extract_claims_empty_text():
     claims = extract_claims("这是一段普通的商品介绍，没有违规内容。")
     total = sum(len(v) for v in claims.values())
     assert total == 0
+
+
+def test_extract_claims_skips_negated_and_instructional_examples():
+    claims = extract_claims("本工具不保证一定通过，文案里不能写全网最低，发布前必须检查授权。")
+    matched = {item["text"] for values in claims.values() for item in values}
+    assert "保证" not in matched
+    assert "全网最低" not in matched
+    assert "必须" not in matched
+
+
+def test_regulated_category_prefers_specific_match():
+    report = compare_product_link(
+        {"title": "保健食品软糖", "category": "保健食品", "current_price": "39.9"},
+        {"price_mentioned": "39.9"},
+        include_qianchuan=False,
+    )
+    assert report["category_risk"]["check_id"] == "行业资质-保健食品"
+    assert report["category_risk"]["risk"] == "blocker"
+
+
+def test_product_report_checks_activity_and_data_claims():
+    report = compare_product_link(
+        {
+            "title": "普通商品",
+            "current_price": "29.9",
+            "activity_rules": "满2件减20元",
+        },
+        {
+            "price_mentioned": "29.9",
+            "activity_mentioned": "满2件减20",
+            "data_claims": ["已售100万件"],
+        },
+        include_qianchuan=False,
+    )
+    by_id = {item["check_id"]: item for item in report["comparisons"]}
+    assert by_id["活动规则完整性"]["result"] == "一致"
+    assert by_id["电商数据声明"]["result"] == "待核验"
 
 
 # --- summarize_claims ---

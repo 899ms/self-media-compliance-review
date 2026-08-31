@@ -34,6 +34,7 @@
 - **视频证据防幻觉**：分开记录分享文案、平台元数据、实际媒体、OCR/ASR 和多模态模型输出；来源不一致时只报告异常与待核验原因，不武断归因。
 - **隐形规则补充**：除官方规则外，整理了各平台创作者实际发布和评论区讨论中的经验样本，用来补充官方没写明的隐形审核尺度（作为症状和争议线索，不当作平台规则）。
 - **机器可读输出**：支持 JSON 格式输出，可接入胶囊影院、选品助手和飞书审批流程。
+- **稳定的数据契约**：视频证据、商品一致性和最终审核报告均提供带版本号的 JSON Schema。
 - **可扩展规则文件**：新增平台时，可以按相同结构补充参考文件。
 
 ## 适合哪些场景
@@ -75,6 +76,8 @@
 
 安装方式取决于你正在使用的 agent。安装完成后，让它告诉你如何调用，以及是否需要重启或刷新当前 session。
 
+更新仓库后，应重新执行同一种安装流程来刷新已安装副本。很多 agent 会在 session 启动时缓存 Skill 指令，所以更新完成后通常需要新开一次 session。
+
 ## 怎么用
 
 直接用自然语言调用：
@@ -114,6 +117,8 @@
 Whisper 转写是可选能力，不是默认依赖。只有明确启用转写并且本机安装了 Whisper 时才会运行；模型可能需要下载，因此 agent 应先说明。没有转写、口播稿或音频审核能力时，报告必须把声音标为“待核验”，不能因为抽样画面正常就判断视频通过。
 
 脚本不会自动给视频定性。它输出的黑屏、静音和文本命中只是预筛；agent 仍需检查 contact sheet 和疑似时间点原帧，结合目标平台规则判断 `Pass/Low/Medium/High/Blocker`。抽帧可能漏掉极短画面，高风险、快切、长视频以及医疗、金融、未成年人等内容应提高采样密度或检查完整时间线。
+
+商品对比和文案扫描也是预筛：它们可以精确比较结构化价格、SKU、赠品和活动字段，或定位可疑声明，但不会自动打开详情页、验证资质、理解全部画面，也不会代替人工给最终结论。所有自动命中都要回到原始证据复核。
 
 抽帧证据不能被描述成“人工逐一看完每一帧”。需要 Gemini 或其他视频多模态模型时，必须提交经过 `ffprobe` 和哈希验证的实际视频文件，保存成功的原始结构化响应，再用原帧、可见字幕和可确认音频交叉核验时间码。模型调用失败时返回的默认结果不构成证据。完整规则见 [`video-evidence-integrity.md`](./references/video-evidence-integrity.md)。
 
@@ -181,6 +186,21 @@ TikHub 返回的原始响应、媒体、签名 URL、日志和报告必须放在
 - 素材授权
 - 商品链接价格和赠品是否一致
 ```
+
+机器接入请直接使用仓库内的三个版本化 Schema：
+
+- [`compliance-report.schema.json`](./schemas/compliance-report.schema.json)：最终审核报告。
+- [`product-consistency.schema.json`](./schemas/product-consistency.schema.json)：商品一致性对比。
+- [`video-evidence-manifest.schema.json`](./schemas/video-evidence-manifest.schema.json)：本地视频证据清单。
+
+## 本地开发与校验
+
+仓库不依赖运行时 Python 三方包；测试与静态检查需要 `pytest`、`ruff`，视频测试还需要 `ffmpeg` 和 `ffprobe`：
+
+依次运行 `python3 -m pytest -q`、`ruff check .` 和
+`python3 /path/to/skill-creator/scripts/quick_validate.py .`。
+
+CI 会执行同一组 lint、测试和基础 Skill 结构校验。修改 `SKILL.md`、工具或 Schema 后，应先让这些检查全部通过，再刷新 agent 中的安装副本。
 
 ## 添加新平台
 

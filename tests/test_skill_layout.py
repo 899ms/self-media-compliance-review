@@ -11,6 +11,13 @@ def test_single_skill_repository_uses_root_level_layout():
     assert Path("references/ecommerce-claims.md").is_file()
     assert Path("references/cases/ecommerce-cases.md").is_file()
     assert Path("references/video-evidence-integrity.md").is_file()
+    assert Path("references/video-review-workflow.md").is_file()
+    assert Path("references/ecommerce-workflow.md").is_file()
+    assert Path("references/live-evidence-workflow.md").is_file()
+    assert Path("references/report-schema.md").is_file()
+    assert Path("schemas/compliance-report.schema.json").is_file()
+    assert Path("schemas/product-consistency.schema.json").is_file()
+    assert Path("schemas/video-evidence-manifest.schema.json").is_file()
     assert Path("tools/search_local_evidence.py").is_file()
     assert Path("tools/analyze_video.py").is_file()
     assert Path("tools/tikhub/lib/tikhub_client.py").is_file()
@@ -61,3 +68,7 @@ def test_skill_md_includes_ecommerce_routing():
     assert "发布前合规" in skill
     assert "选品前风险" in skill
     assert "文案生成前风险" in skill
+    assert "video-review-workflow.md" in skill
+    assert "live-evidence-workflow.md" in skill
+    assert "report-schema.md" in skill
+    assert "Do not return `Pass`" in skill
