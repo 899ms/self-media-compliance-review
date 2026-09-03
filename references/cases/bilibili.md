@@ -283,3 +283,7 @@ Netizen discussion about B站 mined from Xiaohongshu (creator discussion, not ru
 Traceable source:
 
 - Xiaohongshu discussion sample, keywords `B站 限流/小黑屋/锁定/三连/充电`, sample date 2026-06-23.
+
+<!-- auto: scraped post 6828d8620000000023002e3a -->
+- 小红书讨论样本 `6828d8620000000023002e3a` 小mo 「为什么B站现在这么多全片搬运的影视剧？」 ~💬624 👍4950 (sample date 2026-09-03). 关于B站全片搬运影视剧泛滥的高赞讨论（用户视角质疑平台治理）。Review use: 全片搬运（影视剧/番剧完整上传）属明确版权侵权（Blocker）——该讨论说明搬运生态仍活跃；审核跨平台搬运内容时核查片源授权，B站侧按「小黑屋/版权」规则维度引用；用户讨论本身不构成发布依据。
+<!-- /post 6828d8620000000023002e3a -->
