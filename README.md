@@ -200,7 +200,7 @@ TikHub 返回的原始响应、媒体、签名 URL、日志和报告必须放在
 依次运行 `python3 -m pytest -q`、`ruff check .` 和
 `python3 /path/to/skill-creator/scripts/quick_validate.py .`。
 
-CI 会执行同一组 lint、测试和基础 Skill 结构校验。修改 `SKILL.md`、工具或 Schema 后，应先让这些检查全部通过，再刷新 agent 中的安装副本。
+以上 lint、测试和基础 Skill 结构校验均在本地运行（本仓库不使用 GitHub Actions）。修改 `SKILL.md`、工具或 Schema 后，应先让这些检查全部通过，再刷新 agent 中的安装副本。
 
 ## 添加新平台
 
