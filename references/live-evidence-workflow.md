@@ -66,10 +66,15 @@ through `tools/mediacrawler_search.py`:
     python tools/mediacrawler_search.py --platform xiaohongshu \
       --keywords "小红书 限流 申诉,小红书 封号 经验" --max-notes 20
 
-Use `--dry-run` to preview the command before any browser session starts.
-Treat the run like any other live channel: keep samples small, one platform
-per invocation, and tell the user before spending their account's request
-budget. The normalized `records.json`/`digest.md` land in a gitignored
-`local/mc_output/` directory; never commit them, the login cookies, or the
-MediaCrawler browser data. MediaCrawler's license is non-commercial
-learning-only — say so when recommending the route.
+If the checkout is missing, walk the user through the setup in
+`tools/mediacrawler/README.md` (clone, `uv sync`, one QR login) or continue
+the static review — do not install or run unverified crawler forks. The
+first run opens a visible browser window the user must unlock by scanning;
+tell them before starting, and warn that they should prefer a throwaway
+account. Use `--dry-run` to preview the command before any browser session
+starts. Treat the run like any other live channel: keep samples small, one
+platform per invocation, and tell the user before spending their account's
+request budget. The normalized `records.json`/`digest.md` land in a
+gitignored `local/mc_output/` directory; never commit them, the login
+cookies, or the MediaCrawler browser data. MediaCrawler's license is
+non-commercial learning-only — say so when recommending the route.

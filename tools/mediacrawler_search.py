@@ -70,8 +70,8 @@ PROFILE_URL = {
     "bili": "https://www.bilibili.com/video/{id}",
 }
 
-ID_KEYS = ("note_id", "aweme_id", "video_id", "photo_id", "bvid", "post_id",
-           "mblog_id", "content_id", "id")
+ID_KEYS = ("comment_id", "note_id", "aweme_id", "video_id", "photo_id",
+           "bvid", "post_id", "mblog_id", "content_id", "id")
 TITLE_KEYS = ("title", "desc", "content", "text")
 NICK_KEYS = ("nickname", "nick_name", "user_name", "name")
 COMMENT_KEYS = ("comment_count", "comment_count_singlenotes", "commentCnt")
@@ -120,9 +120,12 @@ def normalize_row(row: dict, platform: str) -> dict | None:
     if rid is None:
         return None
     rid = str(rid)
+    # Link comment rows back to their parent note/video, not the comment id.
     url = _first(row, URL_KEYS)
     if not url:
-        url = PROFILE_URL.get(platform, "").format(id=rid) or None
+        url_id = _first(row, ("note_id", "aweme_id", "video_id", "photo_id",
+                              "bvid")) or rid
+        url = PROFILE_URL.get(platform, "").format(id=url_id) or None
     title = _first(row, TITLE_KEYS)
     return {
         "id": rid,
@@ -133,6 +136,7 @@ def normalize_row(row: dict, platform: str) -> dict | None:
         "date": _as_date(_first(row, TIME_KEYS)),
         "url": url,
         "platform": platform,
+        "keyword": row.get("source_keyword"),
     }
 
 
@@ -151,7 +155,13 @@ def load_rows(path: Path) -> list[dict]:
 
 
 def discover(out_dir: Path) -> tuple[list[Path], list[Path]]:
-    """Find content and comment files written by one run into a fresh dir."""
+    """Find content and comment files written by one run into a fresh dir.
+
+    MediaCrawler names output files
+    ``{crawler_type}_{item_type}_{date}.{ext}`` under
+    ``<out>/<platform>/<ext>/`` — e.g. ``search_contents_2026-09-16.jsonl``
+    and ``search_comments_2026-09-16.jsonl``.
+    """
     contents: list[Path] = []
     comments: list[Path] = []
     if out_dir.is_dir():
@@ -159,10 +169,10 @@ def discover(out_dir: Path) -> tuple[list[Path], list[Path]]:
             if not path.is_file() or path.suffix not in (".json", ".jsonl"):
                 continue
             name = path.name.lower()
-            if name.startswith(("search_contents", "detail_contents")):
-                contents.append(path)
-            elif name.startswith("comment"):
+            if "comments" in name:
                 comments.append(path)
+            elif "contents" in name:
+                contents.append(path)
     return contents, comments
 
 
@@ -231,9 +241,10 @@ def write_digest(out_dir: Path, platform: str, args: argparse.Namespace,
         ),
     ]
     for rec in records[:60]:
+        kw = f" | {rec['keyword']}" if rec.get("keyword") else ""
         lines.append(
             f"- id={rec['id']} 💬{rec['comments']} 👍{rec['likes']} "
-            f"| {rec['date']} | {rec['nick']} | {rec['title']}\n"
+            f"| {rec['date']} | {rec['nick']}{kw} | {rec['title']}\n"
         )
     digest = out_dir / "digest.md"
     digest.write_text("".join(lines), encoding="utf-8")

@@ -31,6 +31,7 @@ def test_normalize_row_maps_xhs_note_fields():
         "liked_count": "1234",
         "comment_count": 42,
         "note_url": "https://www.xiaohongshu.com/explore/661f8b0c",
+        "source_keyword": "小红书 限流 申诉",
     }
     rec = normalize_row(row, "xhs")
     assert rec["id"] == "661f8b0c000000001e022222"
@@ -40,6 +41,7 @@ def test_normalize_row_maps_xhs_note_fields():
     assert rec["date"] is not None and rec["date"].startswith("2024-")
     assert rec["url"] == "https://www.xiaohongshu.com/explore/661f8b0c"
     assert rec["platform"] == "xhs"
+    assert rec["keyword"] == "小红书 限流 申诉"
 
 
 def test_normalize_row_builds_url_and_reads_desc_when_title_missing():
@@ -61,6 +63,15 @@ def test_normalize_row_returns_none_without_id():
     assert normalize_row({"title": "no id"}, "xhs") is None
 
 
+def test_normalize_row_keeps_comment_id_and_links_to_note():
+    row = {"comment_id": "c9", "note_id": "n1", "content": "同款经历",
+           "nickname": "路人"}
+    rec = normalize_row(row, "xhs")
+    assert rec["id"] == "c9"
+    assert rec["title"] == "同款经历"
+    assert rec["url"].endswith("/n1")
+
+
 def test_load_rows_supports_jsonl_and_json_array(tmp_path):
     jsonl = tmp_path / "search_contents_2026-09-16.jsonl"
     jsonl.write_text(
@@ -75,11 +86,12 @@ def test_load_rows_supports_jsonl_and_json_array(tmp_path):
 
 
 def test_discover_splits_content_and_comment_files(tmp_path):
+    # Real MediaCrawler layout: <out>/<platform>/jsonl/<type>_<item>_<date>.jsonl
     (tmp_path / "xhs" / "jsonl").mkdir(parents=True)
     (tmp_path / "xhs" / "jsonl" / "search_contents_2026-09-16.jsonl").write_text(
         '{"note_id": "a"}\n', encoding="utf-8"
     )
-    (tmp_path / "xhs" / "jsonl" / "comments_2026-09-16.jsonl").write_text(
+    (tmp_path / "xhs" / "jsonl" / "search_comments_2026-09-16.jsonl").write_text(
         '{"comment_id": "c"}\n', encoding="utf-8"
     )
     (tmp_path / "xhs" / "jsonl" / "unrelated.txt").write_text("skip")

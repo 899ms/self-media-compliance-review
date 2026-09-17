@@ -64,10 +64,27 @@ uv run main.py --platform xhs --lt qrcode --type search \
   --save_data_option jsonl --save_data_path /tmp/mc-out
 ```
 
+## 首次运行排障
+
+MediaCrawler 新版默认启用 CDP 模式（驱动你本机的 Chrome/Edge，反检测最
+好）。如果启动时报连接浏览器失败或一直等待浏览器：
+
+1. 按提示在 Chrome 打开 `chrome://inspect/#remote-debugging` 开启远程调试，
+   或者；
+2. 把 `config/base_config.py` 里的 `ENABLE_CDP_MODE` 改为 `False`，并执行
+   `uv run playwright install chromium`（改用独立的 Playwright Chromium，
+   反检测能力稍弱）。
+
+扫码后如果一直卡在登录：把 `HEADLESS` 保持 `False`（弹窗模式），手动通过
+滑块/验证码后再等它继续。抖音首次登录可能要求手机号验证，同样手动完成后
+重试。
+
 ## 输出
 
-包装脚本把 MediaCrawler 写入输出目录的 `search_contents*.jsonl` /
-`comments*.jsonl` 归一化为本项目的记录格式，并生成：
+MediaCrawler 的原始文件落在 `<输出目录>/<平台>/jsonl/` 下，命名为
+`{爬取类型}_{内容类型}_{日期}.jsonl`（如 `search_contents_2026-09-16.jsonl`
+与 `search_comments_2026-09-16.jsonl`）。包装脚本把它们归一化为本项目的
+记录格式，并生成：
 
 - `digest.md` — 每条记录一行（id、评论数、点赞数、日期、昵称、标题）；
 - `records.json` — `{"records": [...], "comments": [...]}`，字段为
