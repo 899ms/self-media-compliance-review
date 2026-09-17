@@ -20,6 +20,8 @@ def test_single_skill_repository_uses_root_level_layout():
     assert Path("schemas/video-evidence-manifest.schema.json").is_file()
     assert Path("tools/search_local_evidence.py").is_file()
     assert Path("tools/analyze_video.py").is_file()
+    assert Path("tools/mediacrawler_search.py").is_file()
+    assert Path("tools/mediacrawler/README.md").is_file()
     assert Path("tools/tikhub/lib/tikhub_client.py").is_file()
     assert Path("tools/tikhub/references/tools-douyin.json").is_file()
     assert not Path("skills/self-media-compliance-review/SKILL.md").exists()

@@ -30,7 +30,7 @@
 - **修改建议**：给出消音、打码、删改、补资质、补授权、改写话术、移除链接等具体动作。
 - **案例排查参考**：对限流、封号、申诉、原创争议、评论灰产等场景给出排查方向和申诉材料清单。
 - **本地证据检索**：默认可用，只搜索随 Skill 发布的规则和案例文件，不联网、不消耗 API 额度，并返回可追溯的文件和行号。
-- **实时平台证据（可选）**：仅在用户明确要求实时搜索时，通过当前环境已有的平台浏览插件/Skill、浏览器工具或 TikHub 直连 REST API 检索近期案例和讨论；TikHub 不走 MCP。
+- **实时平台证据（可选）**：仅在用户明确要求实时搜索时，通过当前环境已有的平台浏览插件/Skill、浏览器工具、TikHub 直连 REST API 或 MediaCrawler 本机浏览器路线检索近期案例和讨论；TikHub 不走 MCP，MediaCrawler 免费、用用户自己的账号登录。
 - **视频证据防幻觉**：分开记录分享文案、平台元数据、实际媒体、OCR/ASR 和多模态模型输出；来源不一致时只报告异常与待核验原因，不武断归因。
 - **隐形规则补充**：除官方规则外，整理了各平台创作者实际发布和评论区讨论中的经验样本，用来补充官方没写明的隐形审核尺度（作为症状和争议线索，不当作平台规则）。
 - **机器可读输出**：支持 JSON 格式输出，可接入胶囊影院、选品助手和飞书审批流程。
@@ -134,8 +134,8 @@ Whisper 转写是可选能力，不是默认依赖。只有明确启用转写并
 
 只有当用户明确提出“实时搜一下”“查近期案例”“看看平台当前讨论”等要求时，agent 才检查当前环境是否存在可用通道：
 
-- 用户指定 TikHub、某个插件或某个 Skill 时，只使用用户指定的通道；不可用时说明情况，不静默换源。
-- 用户没有指定通道时，可以优先使用目标平台专用的浏览插件或 Skill；也可以在已经配置并可调用时使用 TikHub，或通过 `agent-browser` 一类真实浏览工具访问公开结果。
+- 用户指定 TikHub、MediaCrawler、某个插件或某个 Skill 时，只使用用户指定的通道；不可用时说明情况，不静默换源。
+- 用户没有指定通道时，可以优先使用目标平台专用的浏览插件或 Skill；也可以在已经配置并可调用时使用 TikHub 或 MediaCrawler，或通过 `agent-browser` 一类真实浏览工具访问公开结果。
 - 浏览器通道应遵守登录、访问权限、验证码、频率限制和平台规则，不绕过访问控制。
 - 所有实时通道失败时，静态合规审核继续进行；不能把“搜索失败”写成“没有相似案例”。
 
@@ -144,6 +144,12 @@ Whisper 转写是可选能力，不是默认依赖。只有明确启用转写并
 调用前在进程环境或已被 git 忽略的 `.env` 中设置 `TIKHUB_API_KEY`；中国大陆网络可按需设置 `TIKHUB_API_BASE_URL=https://api.tikhub.dev`。不要把任何密钥写入命令输出、报告、测试夹具或提交记录。
 
 TikHub 返回的原始响应、媒体、签名 URL、日志和报告必须放在 `.gitignore` 已覆盖的本地目录。仓库只提交通用代码、OpenAPI 端点目录、测试、Skill 指令和静态知识，不提交 API key、Cookie、认证令牌、账号安全标识或付费查询结果。
+
+### 免费替代：MediaCrawler（自己账号，不充钱）
+
+不想为 TikHub 充值时，可以用 [MediaCrawler](https://github.com/NanmiCoder/MediaCrawler) 走本机浏览器路线：用户自行克隆安装、用自己的账号扫码登录一次（登录态缓存在 MediaCrawler 目录内），之后即可免费做关键词搜索取证。把环境变量 `MEDIACRAWLER_HOME` 指向本地克隆后，用仓库自带的包装脚本 [tools/mediacrawler_search.py](./tools/mediacrawler_search.py) 调用，例如 `python tools/mediacrawler_search.py --platform xiaohongshu --keywords "小红书 限流 申诉" --max-notes 20`（可先 `--dry-run` 预览实际命令）。
+
+支持小红书、抖音、快手、B站、微博、贴吧、知乎，输出归一化的 `records.json` 与 `digest.md`（默认写入被 git 忽略的 `local/mc_output/`），记录结构与 TikHub 路线的采集记录对齐。安装步骤、完整命令示例与合规红线见 [tools/mediacrawler/README.md](./tools/mediacrawler/README.md)。注意：MediaCrawler 许可为非商业学习用途；用自己账号采集有风控风险（本仓库记录的正是这类案例），请小号、低频、小样本。
 
 示例：
 
