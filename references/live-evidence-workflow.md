@@ -7,12 +7,22 @@ authorization to search.
 
 ## Channel Selection
 
-Before searching, tell the user which channel will be used.
+Before searching, decide the channel WITH the user — never pick one
+silently:
 
-1. If the user names a provider or tool, use only that provider or tool. Do not
-   silently substitute another source if it is unavailable.
-2. Otherwise prefer a target-platform browser plugin or Skill when it can read
-   the requested public content.
+1. If the user names a provider or tool, use only that provider or tool. Do
+   not silently substitute another source if it is unavailable.
+2. Otherwise, list the channels actually available in this environment and
+   ask the user to choose before any search runs. Check availability
+   honestly: TikHub only if `TIKHUB_API_KEY` resolves; MediaCrawler only if
+   `tools/mediacrawler_search.py --status` reports ok; browser plugins and
+   Skills only if actually installed. Note the trade-off in one line each
+   (TikHub consumes paid quota; MediaCrawler uses the user's own logged-in
+   account and needs its one-time scan login). On a fresh install or the
+   first live request, run this availability check as part of the
+   confirmation and offer to run `--setup` if the user prefers the free
+   route. If the user does not answer, continue the static compliance
+   review and say that live search did not run.
 3. TikHub is an optional REST adapter. Use only `tools/tikhub/bin/tikhub`,
    `tools/tikhub/lib/tikhub_client.py`, or `tools/xhs_dynamic_evidence.py`.
    They call documented `https://api.tikhub.io/api/v1/...` endpoints. Never use
@@ -21,7 +31,8 @@ Before searching, tell the user which channel will be used.
    Kuaishou, Bilibili, Weibo, Tieba, and Zhihu. Use only
    `tools/mediacrawler_search.py` against a user-installed MediaCrawler
    checkout. It drives the user's own logged-in browser; never edit its
-   config files, install proxy pools, or raise its rate limits.
+   config files, install proxy pools, or raise its rate limits. After
+   `--setup`, confirm with the user which platform account to log in first.
 5. A real browser tool may access public results. Respect login, CAPTCHA,
    rate-limit, access, and platform restrictions. Do not bypass them.
 
@@ -43,6 +54,29 @@ Put live findings in a separate `实时平台证据（可选）` section. Record
 Creator posts and comments are discussion samples, not binding platform rules.
 They may identify symptoms or disputed enforcement edges, but cannot determine
 severity by themselves.
+
+## Knowledge Deposition (opt-in)
+
+Live findings can become permanent knowledge in this repository's case
+files, but never automatically:
+
+- After the review, if the user wants findings kept, propose converting the
+  valuable records into case entries and wait for explicit confirmation
+  before writing to any tracked file.
+- Follow the established entry format of the target
+  `references/cases/<platform>.md` — imitate its most recent
+  `<!-- auto: scraped post <id> -->` blocks: a `类别:` label, the (masked)
+  nickname, content id, title, interaction counts, sample date, a one-line
+  summary of what the post reveals, and an explicit `Review use:` note.
+  Creator posts and comments stay discussion samples, never rules.
+- Appends must stay traceable: keep the content id and capture date so the
+  entry can be re-verified or pruned later.
+- Local installs of this repository also have an automatic loop: the
+  MediaCrawler wrapper mirrors every run into
+  `local/records-mc-<date>.json`, and the scheduled
+  `collect.py` dedup → triage → `references/cases/` pipeline picks new ids
+  up on the next collection day. Skill users without that pipeline should
+  use the manual proposal flow above.
 
 Keep API responses, downloaded media, signed URLs, model outputs, logs, and
 reports in a gitignored local evidence directory. Never commit API keys,

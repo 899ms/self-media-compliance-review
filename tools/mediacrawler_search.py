@@ -629,6 +629,42 @@ def write_digest(out_dir: Path, platform: str, args: argparse.Namespace,
     return digest
 
 
+def write_bridge_records(records: list[dict], platform: str,
+                         repo_root: Path | None = None) -> Path | None:
+    """Mirror a run's records into local/records-mc-<date>.json.
+
+    The maintainer's local pipeline (``local/collect.py`` dedup →
+    ``triage_new_items.sh`` → ``references/cases/``) scans these files, so
+    on-demand MediaCrawler runs feed the same knowledge-deposition loop as
+    the scheduled TikHub crawls; seen_ids.txt keeps repeated scans
+    idempotent. Returns the bridge path, or None outside the repo layout.
+    """
+    root = repo_root if repo_root is not None else REPO_ROOT
+    local_dir = root / "local"
+    if not local_dir.is_dir():
+        return None
+    today = (datetime.datetime.now(datetime.timezone.utc).astimezone()
+             .date().isoformat())
+    path = local_dir / f"records-mc-{today}.json"
+    merged: dict[str, dict] = {}
+    if path.is_file():
+        try:
+            for row in json.loads(path.read_text(encoding="utf-8")):
+                if isinstance(row, dict) and row.get("id"):
+                    merged[str(row["id"])] = row
+        except (OSError, json.JSONDecodeError):
+            pass
+    for rec in records:
+        row = dict(rec)
+        row.setdefault("src", platform)
+        merged[str(row["id"])] = row
+    path.write_text(
+        json.dumps(list(merged.values()), ensure_ascii=False, indent=0),
+        encoding="utf-8",
+    )
+    return path
+
+
 def default_out(platform: str) -> Path:
     stamp = datetime.datetime.now(datetime.timezone.utc).astimezone().strftime(
         "%Y%m%d-%H%M%S"
@@ -743,9 +779,12 @@ def main(argv: list[str] | None = None) -> int:
         print("[mc] 注意：本次因超时被终止，以上是部分结果", file=sys.stderr)
     mark_cooldown(args.platform)
     digest = write_digest(args.out, args.platform, args, records, comments)
+    bridge = write_bridge_records(records, args.platform)
     print(f"records={len(records)} comments={len(comments)}")
     print(f"Digest: {digest}")
     print(f"Records: {args.out / 'records.json'}")
+    if bridge:
+        print(f"Bridge (沉淀管道输入): {bridge}")
     return 0
 
 

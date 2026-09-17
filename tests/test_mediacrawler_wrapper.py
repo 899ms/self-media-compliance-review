@@ -1,3 +1,4 @@
+import datetime
 import json
 import time
 from pathlib import Path
@@ -18,6 +19,7 @@ from tools.mediacrawler_search import (
     normalize_row,
     patch_config,
     status,
+    write_bridge_records,
 )
 
 FIXTURE_DIR = Path("tests/fixtures/mc/xhs")
@@ -263,3 +265,33 @@ def test_default_out_lives_under_gitignored_local():
     out = default_out("xhs")
     assert "local" in out.parts
     assert "mc_output" in out.parts
+
+
+def test_bridge_records_mirror_into_local_pipeline(tmp_path):
+    (tmp_path / "local").mkdir()
+    bridge = write_bridge_records(
+        [{"id": "a1", "title": "t", "platform": "xhs"},
+         {"id": "a2", "title": "t2", "platform": "xhs"}],
+        "xhs", repo_root=tmp_path,
+    )
+    expected = tmp_path / "local" / (
+        "records-mc-"
+        + datetime.datetime.now(datetime.timezone.utc).astimezone()
+        .date().isoformat() + ".json"
+    )
+    assert bridge == expected
+    data = json.loads(expected.read_text(encoding="utf-8"))
+    assert {r["id"] for r in data} == {"a1", "a2"}
+    assert data[0]["src"] == "xhs"
+    # a second same-day run merges by id instead of duplicating
+    write_bridge_records(
+        [{"id": "a2", "title": "t2b", "platform": "xhs"},
+         {"id": "a3", "title": "t3", "platform": "xhs"}],
+        "xhs", repo_root=tmp_path,
+    )
+    data = json.loads(expected.read_text(encoding="utf-8"))
+    assert {r["id"] for r in data} == {"a1", "a2", "a3"}
+    assert data[0]["title"] == "t"  # earlier run's row is preserved
+    # outside a repo layout there is nothing to mirror into
+    assert write_bridge_records([], "xhs",
+                                repo_root=tmp_path / "nope") is None
