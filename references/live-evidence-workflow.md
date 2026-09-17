@@ -58,23 +58,26 @@ in commands, reports, fixtures, or commits.
 
 ## MediaCrawler Configuration
 
-The free route needs a user-installed MediaCrawler checkout and one manual
-QR-code login; setup steps live in `tools/mediacrawler/README.md`. Point
-`MEDIACRAWLER_HOME` (or `--mc-dir`) at the checkout and run keyword searches
-through `tools/mediacrawler_search.py`:
+The free route uses a locally installed MediaCrawler checkout with one
+manual QR-code login. Install is automated: run
+`python tools/mediacrawler_search.py --setup` (clones into gitignored
+`vendor/`, builds a venv, installs chromium, patches the config for
+standard Playwright mode), and check readiness with `--status`. Then run
+keyword searches:
 
     python tools/mediacrawler_search.py --platform xiaohongshu \
       --keywords "小红书 限流 申诉,小红书 封号 经验" --max-notes 20
 
-If the checkout is missing, walk the user through the setup in
-`tools/mediacrawler/README.md` (clone, `uv sync`, one QR login) or continue
-the static review — do not install or run unverified crawler forks. The
-first run opens a visible browser window the user must unlock by scanning;
-tell them before starting, and warn that they should prefer a throwaway
-account. Use `--dry-run` to preview the command before any browser session
-starts. Treat the run like any other live channel: keep samples small, one
-platform per invocation, and tell the user before spending their account's
-request budget. The normalized `records.json`/`digest.md` land in a
-gitignored `local/mc_output/` directory; never commit them, the login
-cookies, or the MediaCrawler browser data. MediaCrawler's license is
-non-commercial learning-only — say so when recommending the route.
+Use `--dry-run` to preview the command before any browser session starts.
+The first run opens a visible browser window the user must unlock by
+scanning; tell them before starting and warn that they should prefer a
+throwaway account. Video Channels (视频号) is not supported on this route —
+use TikHub or local video for it. Same-platform runs are cooldown-limited
+(five minutes by default) to protect the logged-in account; merge keywords
+into one `--keywords` instead of looping, and never use `--force` without
+the user asking. Treat the run like any other live channel: keep samples
+small, one platform per invocation. The normalized `records.json`/
+`digest.md` land in a gitignored `local/mc_output/` directory; never
+commit them, the login cookies, or the MediaCrawler browser data.
+MediaCrawler's license is non-commercial learning-only — say so when
+recommending the route.

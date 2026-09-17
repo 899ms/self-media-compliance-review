@@ -147,9 +147,9 @@ TikHub 返回的原始响应、媒体、签名 URL、日志和报告必须放在
 
 ### 免费替代：MediaCrawler（自己账号，不充钱）
 
-不想为 TikHub 充值时，可以用 [MediaCrawler](https://github.com/NanmiCoder/MediaCrawler) 走本机浏览器路线：用户自行克隆安装、用自己的账号扫码登录一次（登录态缓存在 MediaCrawler 目录内），之后即可免费做关键词搜索取证。把环境变量 `MEDIACRAWLER_HOME` 指向本地克隆后，用仓库自带的包装脚本 [tools/mediacrawler_search.py](./tools/mediacrawler_search.py) 调用，例如 `python tools/mediacrawler_search.py --platform xiaohongshu --keywords "小红书 限流 申诉" --max-notes 20`（可先 `--dry-run` 预览实际命令）。
+不想为 TikHub 充值时，可以用 [MediaCrawler](https://github.com/NanmiCoder/MediaCrawler) 走本机浏览器路线：`python tools/mediacrawler_search.py --setup` 一条命令自动完成安装（克隆到被 git 忽略的 `vendor/`、建独立虚拟环境、装 chromium、自动补丁配置），首次搜索时用自己的账号扫码登录一次（登录态长期复用），之后即可免费做关键词搜索取证，例如 `python tools/mediacrawler_search.py --platform xiaohongshu --keywords "小红书 限流 申诉" --max-notes 20`（可先 `--dry-run` 预览、`--status` 检查安装与登录态）。
 
-支持小红书、抖音、快手、B站、微博、贴吧、知乎，输出归一化的 `records.json` 与 `digest.md`（默认写入被 git 忽略的 `local/mc_output/`），记录结构与 TikHub 路线的采集记录对齐。安装步骤、完整命令示例与合规红线见 [tools/mediacrawler/README.md](./tools/mediacrawler/README.md)。注意：MediaCrawler 许可为非商业学习用途；用自己账号采集有风控风险（本仓库记录的正是这类案例），请小号、低频、小样本。
+支持小红书、抖音、快手、B站、微博、贴吧、知乎（视频号不支持，走 TikHub），输出归一化的 `records.json` 与 `digest.md`（默认写入被 git 忽略的 `local/mc_output/`），记录结构与 TikHub 路线的采集记录对齐；同平台两次抓取默认强制间隔 5 分钟以保护登录账号。安装细节、完整命令示例与合规红线见 [tools/mediacrawler/README.md](./tools/mediacrawler/README.md)。注意：MediaCrawler 许可为非商业学习用途；用自己账号采集有风控风险（本仓库记录的正是这类案例），请小号、低频、小样本。
 
 示例：
 

@@ -11,3 +11,6 @@ docs/superpowers/
 
 # Local-only: data-collection method, not published
 local/
+
+# MediaCrawler local install (clone + venv + data), never published
+vendor/
