@@ -25,9 +25,20 @@ python tools/mediacrawler_search.py --setup
 （优先钉在已验证的 commit）→ 建独立虚拟环境 `vendor/mc-venv` → 安装依赖和
 Playwright chromium → 把 `ENABLE_CDP_MODE` 补丁为 `False`（CDP 模式要求
 手动配置本机 Chrome 远程调试，自动化不可控；标准 Playwright 模式的登录态
-落在 `browser_data/`，扫码一次长期复用）→ `main.py --help` 自检。
+落在 `browser_data/`，扫码一次长期复用）→ 给请求节奏打随机抖动补丁（见下）
+→ `main.py --help` 自检。
 
-随时用 `--status` 检查安装与登录态（JSON 输出，含已登录平台列表）。
+**下载源自动择优**（慢网/中国大陆直连明显更快）：pip 在官方 PyPI、清华、
+阿里三源里并发探测选最快；Playwright chromium（约 200MB）在官方 CDN 与
+npmmirror 之间选（镜像明显更快才启用）；git 克隆在 github 直连不可达时
+自动走 gh 代理镜像。依赖优先装精简版 `requirements-lean.txt`（比上游全量
+少装 webui/Excel/数据库驱动等，装完自检失败会自动回退全量）。已设
+`PIP_INDEX_URL`、`PLAYWRIGHT_DOWNLOAD_HOST`、`MC_GIT_URL` 时以环境变量为
+准；`--no-mirror` 或 `MC_NO_MIRROR=1` 可整体禁用镜像。安装日志逐行转发到
+stderr，stdout 始终是纯 JSON。
+
+随时用 `--status` 检查安装与登录态（JSON 输出，含已登录平台列表与
+`pacing_patched` 抖动补丁状态）。
 
 也可以把已有克隆通过 `MEDIACRAWLER_HOME` 环境变量或 `--mc-dir` 指进来
 （此时不强制 vendor 布局，但 venv 仍按 `<mc-dir>/../mc-venv` 查找）。
@@ -64,11 +75,30 @@ cd vendor/MediaCrawler
   --save_data_option jsonl --save_data_path /tmp/mc-out
 ```
 
-## 账号保护：同平台冷却
+## 账号保护：频率与体量控制
 
-同一平台两次抓取默认间隔 5 分钟（`MC_COOLDOWN_SECONDS` 可调），间隔不足
-会被拒绝并提示——这是为了保护你的登录账号不触发风控。多个关键词合并进一次
-`--keywords` 即可；确有必要立即重抓时加 `--force`。
+登录的是你自己的账号，抓太密会触发平台风控（验证码、限流甚至封号）。本项目的
+抓取常带评论（`--with-comments`），单次 run 的请求数比纯搜索更大，所以频率
+上限不能放宽。包装脚本内置四道机制（默认参数即保守档，超限直接拒绝而不是
+靠自觉）：
+
+1. **同平台冷却 30 分钟**（`MC_COOLDOWN_SECONDS` 可调）：对应「同账号同平台
+   每天 ≤ 4-6 次」的安全预算。多个关键词合并进一次 `--keywords`（单次最多
+   3 个，`MC_MAX_KEYWORDS` 可调）；确有必要立即重抓时加 `--force`。
+2. **失败退避 10 分钟**：抓取失败（没扫码 / 触发风控 / 无结果）也会写一个
+   较短的冷却标记——失败往往发生在风控敏感期，立即重试只会继续加压。连续
+   失败通常是登录失效或风控信号，先 `--status` 检查登录态，不要拿
+   `--force` 硬闯。
+3. **全机单实例锁**：同一时间只允许一个抓取进程，跨平台并行同样拒绝
+   （并行会抢浏览器登录 profile、可能损坏登录态）。`--force` 也不绕过锁；
+   崩溃残留超过 2 小时的锁会被自动抢占。
+4. **请求间隔随机抖动**：setup 会给上游爬虫打补丁，把固定 2s 间隔改成
+   3-6s 随机停顿（固定间隔是平台异常检测最经典的机器特征）；评论固定为
+   一级、每条内容 ≤ `--max-comments`（默认 10）条，二级评论关闭。
+
+守则：风控看的是长期总量，不是单次频率——每日预算同账号同平台 ≤ 4-6 次
+run；额度用完改走 TikHub 或改天再抓。出现验证码、登录失效、连续空结果
+立即停手。
 
 ## 输出
 
