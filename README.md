@@ -134,9 +134,9 @@ Whisper 转写是可选能力，不是默认依赖。只有明确启用转写并
 
 只有当用户明确提出“实时搜一下”“查近期案例”“看看平台当前讨论”等要求时，agent 才检查当前环境是否存在可用通道：
 
-- 用户指定 TikHub、MediaCrawler、某个插件或某个 Skill 时，只使用用户指定的通道；不可用时说明情况，不静默换源。
-- 用户没有指定通道时，可以优先使用目标平台专用的浏览插件或 Skill；也可以在已经配置并可调用时使用 TikHub 或 MediaCrawler，或通过 `agent-browser` 一类真实浏览工具访问公开结果。
-- 浏览器通道应遵守登录、访问权限、验证码、频率限制和平台规则，不绕过访问控制。
+- 用户指定 TikHub、MediaCrawler、`opencli` 或某个浏览器工具时，只使用用户指定的通道；不可用时说明情况，不静默换源。
+- 用户没有指定通道时，按推荐优先级提议并经用户确认：agent 自带 computer use → agent 浏览器自动化（`agent-browser` 一类真实浏览工具）→ `opencli` → TikHub → MediaCrawler（最后手段，实测已被平台反爬识别）。
+- 浏览器类通道应遵守登录、访问权限、验证码、频率限制和平台规则，不绕过访问控制；出现反爬信号就停下并在报告中说明。
 - 所有实时通道失败时，静态合规审核继续进行；不能把“搜索失败”写成“没有相似案例”。
 
 仓库自带的 [tools/xhs_dynamic_evidence.py](./tools/xhs_dynamic_evidence.py) 是 TikHub 的一个可选小红书适配器，[tools/tikhub/bin/tikhub](./tools/tikhub/bin/tikhub) 则可调用已缓存目录中的抖音和小红书 REST 端点。它们只请求 TikHub 官方 `https://api.tikhub.io/api/v1/...`（中国大陆可显式配置 `.dev` 基础域名），使用 Bearer API key，禁止请求 `mcp.tikhub.io` 或任何 TikHub MCP 工具。调用可能产生 TikHub 费用或消耗账号额度，因此不会作为默认审核步骤。
@@ -145,15 +145,25 @@ Whisper 转写是可选能力，不是默认依赖。只有明确启用转写并
 
 TikHub 返回的原始响应、媒体、签名 URL、日志和报告必须放在 `.gitignore` 已覆盖的本地目录。仓库只提交通用代码、OpenAPI 端点目录、测试、Skill 指令和静态知识，不提交 API key、Cookie、认证令牌、账号安全标识或付费查询结果。
 
-### 免费替代：MediaCrawler（自己账号，不充钱）
+### 实时检索通道：推荐优先级
 
-不想为 TikHub 充值时，可以用 [MediaCrawler](https://github.com/NanmiCoder/MediaCrawler) 走本机浏览器路线：`python tools/mediacrawler_search.py --setup` 一条命令自动完成安装（克隆到被 git 忽略的 `vendor/`、建独立虚拟环境、装 chromium、自动补丁配置；pip/Chromium/GitHub 下载源自动择优镜像，慢网下明显更快），首次搜索时用自己的账号扫码登录一次（登录态长期复用），之后即可免费做关键词搜索取证，例如 `python tools/mediacrawler_search.py --platform xiaohongshu --keywords "小红书 限流 申诉" --max-notes 20`（可先 `--dry-run` 预览、`--status` 检查安装与登录态）。
+需要实时平台证据时，agent 按以下优先级向用户推荐通道（用户点名了某个通道则只用它，不静默换源）：
 
-支持小红书、抖音、快手、B站、微博、贴吧、知乎（视频号不支持，走 TikHub），输出归一化的 `records.json` 与 `digest.md`（默认写入被 git 忽略的 `local/mc_output/`），记录结构与 TikHub 路线的采集记录对齐；账号保护内置同平台 30 分钟冷却、失败退避 10 分钟、全机单实例锁、单次关键词上限与请求间隔随机抖动（详见 [tools/mediacrawler/README.md](./tools/mediacrawler/README.md) 的「账号保护」一节）。抓取内容可以沉淀回知识库：本地安装会自动镜像进定时管道的 dedup→triage→案例库流程，普通用户则由 agent 在审核后生成案例条目提案、经确认写入 `references/cases/`。实时搜索前 agent 会先列出当前可用的通道（浏览器插件 / TikHub / MediaCrawler）并与用户确认用哪个，不会静默选源。安装细节、完整命令示例与合规红线见 [tools/mediacrawler/README.md](./tools/mediacrawler/README.md)。注意：MediaCrawler 许可为非商业学习用途；用自己账号采集有风控风险（本仓库记录的正是这类案例），请小号、低频、小样本。
+1. **agent 自带的 computer use** — 像人一样操作屏幕，无额外账号暴露；
+2. **agent 的浏览器自动化**（browser use / agent-browser）；
+3. **`opencli`** — 本机站点 CLI 适配器；
+4. **TikHub** — 付费 REST API，按调用计费；
+5. **MediaCrawler** — 免费，**最后手段**：用自己账号登录本机浏览器采集，实测已被平台反爬识别，仅当以上通道都不可用且用户明确接受账号风险时使用。
+
+### MediaCrawler（免费兜底，最后手段）
+
+以上通道都不可用、且用户接受风险时，才用 [MediaCrawler](https://github.com/NanmiCoder/MediaCrawler) 走本机浏览器路线：`python tools/mediacrawler_search.py --setup` 一条命令自动完成安装（克隆到被 git 忽略的 `vendor/`、建独立虚拟环境、装 chromium、自动补丁配置；pip/Chromium/GitHub 下载源自动择优镜像，慢网下明显更快），首次搜索时用自己的账号扫码登录一次（登录态长期复用），之后即可免费做关键词搜索取证，例如 `python tools/mediacrawler_search.py --platform xiaohongshu --keywords "小红书 限流 申诉" --max-notes 20`（可先 `--dry-run` 预览、`--status` 检查安装与登录态）。
+
+支持小红书、抖音、快手、B站、微博、贴吧、知乎（视频号不支持，走 TikHub），输出归一化的 `records.json` 与 `digest.md`（默认写入被 git 忽略的 `local/mc_output/`），记录结构与 TikHub 路线的采集记录对齐；账号保护内置同平台 30 分钟冷却、失败退避 10 分钟、全机单实例锁、单次关键词上限与请求间隔随机抖动（详见 [tools/mediacrawler/README.md](./tools/mediacrawler/README.md) 的「账号保护」一节）。抓取内容可以沉淀回知识库：本地安装会自动镜像进定时管道的 dedup→triage→案例库流程，普通用户则由 agent 在审核后生成案例条目提案、经确认写入 `references/cases/`。安装细节、完整命令示例与合规红线见 [tools/mediacrawler/README.md](./tools/mediacrawler/README.md)。注意：MediaCrawler 许可为非商业学习用途；用自己账号采集有风控风险（本仓库记录的正是这类案例，且维护者实测该路线已出现被平台反爬识别的情况），请小号、低频、小样本，能不用就不用。
 
 示例：
 
-> 使用 self-media-compliance-review 审核这条笔记，并实时搜索一下近期相似的导流处罚案例。当前有什么可用搜索通道就用什么；如果都不可用，继续静态审核并说明未搜索。
+> 使用 self-media-compliance-review 审核这条笔记，并实时搜索一下近期相似的导流处罚案例。按你的通道优先级推荐一个可用通道，我确认后再搜；都不可用就继续静态审核并说明未搜索。
 
 > 使用 self-media-compliance-review 审核这条笔记，只通过 TikHub 搜近期相似案例；TikHub 不可用时不要换成其他来源。
 

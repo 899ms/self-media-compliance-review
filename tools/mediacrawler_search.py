@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 """Wrap a local MediaCrawler checkout as the free live-search route.
 
+Channel priority (2026-09): agent computer use > agent browser automation
+> opencli > TikHub > this wrapper. MediaCrawler has been flagged by
+platform anti-crawl in practice, so it is the LAST-resort channel: propose
+it only when nothing above is available and the user accepts the account
+risk.
+
 TikHub (`tools/tikhub/`) is a paid REST adapter. This wrapper is the
 no-cost alternative: the user's own platform account logs in once in a
 real browser, then keyword searches run locally and normalize into the

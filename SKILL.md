@@ -52,9 +52,11 @@ Read additional workflow references only when their conditions apply:
   `ecommerce-claims.md`, and when relevant `cases/ecommerce-cases.md`.
 - The user explicitly requests current cases or live search: read
   `references/live-evidence-workflow.md`. Live search is off by default.
-  Channels include a target-platform browser plugin, TikHub (paid REST
-  API), and MediaCrawler (`tools/mediacrawler_search.py`, free, drives the
-  user's own logged-in local browser).
+  Recommend channels in this priority order: the agent's own computer
+  use, then the agent's browser automation, then `opencli`, then TikHub
+  (paid REST API), and — last resort only — MediaCrawler
+  (`tools/mediacrawler_search.py`, free, drives the user's own logged-in
+  local browser; platform anti-crawl has flagged this route in practice).
   The presence of a live-search channel is not authorization; search only
   when the user explicitly asks.
 - A serious review or JSON handoff is needed: read

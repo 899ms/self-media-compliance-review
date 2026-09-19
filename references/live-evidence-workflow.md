@@ -12,29 +12,45 @@ silently:
 
 1. If the user names a provider or tool, use only that provider or tool. Do
    not silently substitute another source if it is unavailable.
-2. Otherwise, list the channels actually available in this environment and
-   ask the user to choose before any search runs. Check availability
-   honestly: TikHub only if `TIKHUB_API_KEY` resolves; MediaCrawler only if
-   `tools/mediacrawler_search.py --status` reports ok; browser plugins and
-   Skills only if actually installed. Note the trade-off in one line each
-   (TikHub consumes paid quota; MediaCrawler uses the user's own logged-in
-   account and needs its one-time scan login). On a fresh install or the
-   first live request, run this availability check as part of the
-   confirmation and offer to run `--setup` if the user prefers the free
-   route. If the user does not answer, continue the static compliance
-   review and say that live search did not run.
+2. Otherwise, recommend channels in this priority order and let the user
+   confirm before any search runs:
+
+   1. the agent's built-in computer use (drives the screen like a human);
+   2. the agent's browser automation (browser use / agent-browser);
+   3. `opencli` (local site CLI adapters);
+   4. TikHub (paid REST API);
+   5. MediaCrawler — LAST RESORT only.
+
+   Check availability honestly and recommend the highest available channel:
+   `opencli` only if the command resolves on this machine; TikHub only if
+   `TIKHUB_API_KEY` resolves; MediaCrawler only if
+   `tools/mediacrawler_search.py --status` reports ok. Note the trade-off in
+   one line each (TikHub consumes paid quota; MediaCrawler uses the user's
+   own logged-in account and has been flagged by platform anti-crawl in
+   practice — propose it only when nothing above is available AND the user
+   explicitly accepts the account risk). On a fresh install or the first
+   live request, run this availability check as part of the confirmation.
+   If the user does not answer, continue the static compliance review and
+   say that live search did not run.
 3. TikHub is an optional REST adapter. Use only `tools/tikhub/bin/tikhub`,
    `tools/tikhub/lib/tikhub_client.py`, or `tools/xhs_dynamic_evidence.py`.
    They call documented `https://api.tikhub.io/api/v1/...` endpoints. Never use
    `mcp.tikhub.io`, a TikHub MCP server, or a TikHub MCP tool.
-4. MediaCrawler is the free local-browser adapter for Xiaohongshu, Douyin,
-   Kuaishou, Bilibili, Weibo, Tieba, and Zhihu. Use only
+4. MediaCrawler is the last-resort free local-browser adapter for
+   Xiaohongshu, Douyin, Kuaishou, Bilibili, Weibo, Tieba, and Zhihu. It
+   drives the user's own logged-in browser and is the channel most exposed
+   to platform anti-crawl — the maintainer has observed anti-crawl
+   detection against this route in practice, so propose it only after the
+   channels above are unavailable or declined. Use only
    `tools/mediacrawler_search.py` against a user-installed MediaCrawler
-   checkout. It drives the user's own logged-in browser; never edit its
-   config files, install proxy pools, or raise its rate limits. After
-   `--setup`, confirm with the user which platform account to log in first.
-5. A real browser tool may access public results. Respect login, CAPTCHA,
-   rate-limit, access, and platform restrictions. Do not bypass them.
+   checkout. Never edit its config files, install proxy pools, or raise its
+   rate limits. After `--setup`, confirm with the user which platform
+   account to log in first.
+5. Computer use, browser automation, and `opencli` all drive a real browser
+   or the screen and may access public results. Respect login, CAPTCHA,
+   rate-limit, access, and platform restrictions. Do not bypass them. If a
+   channel shows anti-crawl signals (CAPTCHA walls, sudden empty results),
+   stop that channel and say so in the report instead of pushing through.
 
 A lookup may consume quota, incur fees, or access a logged-in session. If the
 requested channel is unavailable or fails, continue the static compliance
@@ -90,10 +106,12 @@ mainland networks may explicitly set
 `TIKHUB_API_BASE_URL=https://api.tikhub.dev`. Never print or place credentials
 in commands, reports, fixtures, or commits.
 
-## MediaCrawler Configuration
+## MediaCrawler Configuration (last resort)
 
 The free route uses a locally installed MediaCrawler checkout with one
-manual QR-code login. Install is automated: run
+manual QR-code login. It is the LAST channel to propose: it drives the
+user's own account and platform anti-crawl has flagged this route in
+practice. Install is automated: run
 `python tools/mediacrawler_search.py --setup` (clones into gitignored
 `vendor/`, builds a venv, installs chromium, patches the config for
 standard Playwright mode), and check readiness with `--status`. Then run
@@ -107,11 +125,11 @@ The first run opens a visible browser window the user must unlock by
 scanning; tell them before starting and warn that they should prefer a
 throwaway account. Video Channels (视频号) is not supported on this route —
 use TikHub or local video for it. Same-platform runs are cooldown-limited
-(five minutes by default) to protect the logged-in account; merge keywords
-into one `--keywords` instead of looping, and never use `--force` without
-the user asking. Treat the run like any other live channel: keep samples
-small, one platform per invocation. The normalized `records.json`/
-`digest.md` land in a gitignored `local/mc_output/` directory; never
-commit them, the login cookies, or the MediaCrawler browser data.
-MediaCrawler's license is non-commercial learning-only — say so when
-recommending the route.
+(30 minutes by default, 10-minute backoff after a failure) to protect the
+logged-in account; merge keywords into one `--keywords` (3 per run at
+most) instead of looping, and never use `--force` without the user asking.
+Treat the run like any other live channel: keep samples small, one
+platform per invocation. The normalized `records.json`/`digest.md` land in
+a gitignored `local/mc_output/` directory; never commit them, the login
+cookies, or the MediaCrawler browser data. MediaCrawler's license is
+non-commercial learning-only — say so when recommending the route.

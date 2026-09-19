@@ -1,6 +1,13 @@
 # MediaCrawler 免费采集路线
 
-本仓库的实时平台证据有两条路线：
+> **定位（2026-09 起）：最后手段。** 维护者实测本路线已被平台反爬识别。
+> 实时检索请按以下优先级选通道：agent 自带 computer use → agent 浏览器
+> 自动化（browser use / agent-browser）→ `opencli` → TikHub；本路线仅在
+> 以上通道都不可用且用户明确接受账号风险时使用。
+
+本仓库的实时平台证据有多条路线，按推荐优先级：agent computer use →
+agent 浏览器自动化 → `opencli` → TikHub（下表）→ MediaCrawler（本路线，
+最后手段）：
 
 | | TikHub（`tools/tikhub/`） | MediaCrawler（本路线） |
 |---|---|---|

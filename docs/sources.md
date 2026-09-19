@@ -95,11 +95,13 @@ configured. Search only when the user explicitly requests current platform
 content, recent cases, or live discussion, and identify the selected channel in
 the report.
 
-Available channels may include a target-platform browser plugin/Skill, a real
-browser tool such as `agent-browser`, or TikHub. If the user specifies a
-channel, do not silently substitute another one. TikHub access in this
-repository uses only documented direct REST endpoints under
-`https://api.tikhub.io/api/v1/...`; do not use TikHub MCP or `mcp.tikhub.io`.
+Available channels, in recommendation order: the agent's own computer use,
+the agent's browser automation (real browser tools such as `agent-browser`),
+`opencli`, TikHub, and — last resort only — MediaCrawler (anti-crawl has
+flagged that route in practice). If the user specifies a channel, do not
+silently substitute another one. TikHub access in this repository uses only
+documented direct REST endpoints under `https://api.tikhub.io/api/v1/...`;
+do not use TikHub MCP or `mcp.tikhub.io`.
 TikHub Xiaohongshu search/comment tools require `TIKHUB_API_KEY`:
 
   - `xiaohongshu_app_v2_search_notes`
