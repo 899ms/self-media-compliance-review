@@ -1,13 +1,13 @@
 # MediaCrawler 免费采集路线
 
-> **定位（2026-09 起）：最后手段。** 维护者实测本路线已被平台反爬识别。
-> 实时检索请按以下优先级选通道：agent 自带 computer use → agent 浏览器
-> 自动化（browser use / agent-browser）→ `opencli` → TikHub；本路线仅在
-> 以上通道都不可用且用户明确接受账号风险时使用。
+> **定位（2026-09 起）：第 ⑤ 档，最后手段。** 维护者实测本路线已被平台
+> 反爬识别。实时检索按档位顺位启用：① agent 自带 computer use →
+> ② agent 自带浏览器工具（browser use / MCP 浏览器）→ ③ `opencli` →
+> ④ TikHub → ⑤ 本路线（仅当 ①-④ 都不可用，且启用前受频率铁律硬约束：
+> 30 分钟冷却、失败退避、全机单实例锁、体量上限）。
 
-本仓库的实时平台证据有多条路线，按推荐优先级：agent computer use →
-agent 浏览器自动化 → `opencli` → TikHub（下表）→ MediaCrawler（本路线，
-最后手段）：
+本仓库的实时平台证据按上述档位选择数据源，下表对比其中两个自动化适配器
+路线（④ TikHub 与 ⑤ MediaCrawler）：
 
 | | TikHub（`tools/tikhub/`） | MediaCrawler（本路线） |
 |---|---|---|

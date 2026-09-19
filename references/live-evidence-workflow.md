@@ -7,45 +7,39 @@ authorization to search.
 
 ## Channel Selection
 
-Before searching, decide the channel WITH the user — never pick one
-silently:
+Live search runs only on an explicit user request. Within that request,
+pick the channel by tier:
 
 1. If the user names a provider or tool, use only that provider or tool. Do
    not silently substitute another source if it is unavailable.
-2. Otherwise, recommend channels in this priority order and let the user
-   confirm before any search runs:
+2. Otherwise use the first tier that works, in this order:
 
-   1. the agent's built-in computer use (drives the screen like a human);
-   2. the agent's browser automation (browser use / agent-browser);
-   3. `opencli` (local site CLI adapters);
-   4. TikHub (paid REST API);
-   5. MediaCrawler — LAST RESORT only.
+   | Tier | Channel | Enablement |
+   |---|---|---|
+   | ① | The agent's built-in computer use (drives the screen like a human) | Self-check the host capability; when present, use it directly without asking the user again |
+   | ② | The agent's built-in browser tools (browser use / MCP browser) | Same self-check; move here when ① is unavailable or the page cannot be read |
+   | ③ | `opencli` (local site CLI adapters) | Only when the host has neither ① nor ②; the first option of the ask-the-user step |
+   | ④ | TikHub (paid REST API; stable; five platforms incl. 视频号) | An option while asking the user; spending money requires explicit consent first |
+   | ⑤ | MediaCrawler (last resort) | Only when ①-④ are all unavailable; on top of that, the frequency hard rules below bind every run |
 
-   Check availability honestly and recommend the highest available channel:
-   `opencli` only if the command resolves on this machine; TikHub only if
-   `TIKHUB_API_KEY` resolves; MediaCrawler only if
-   `tools/mediacrawler_search.py --status` reports ok. Note the trade-off in
-   one line each (TikHub consumes paid quota; MediaCrawler uses the user's
-   own logged-in account and has been flagged by platform anti-crawl in
-   practice — propose it only when nothing above is available AND the user
-   explicitly accepts the account risk). On a fresh install or the first
-   live request, run this availability check as part of the confirmation.
-   If the user does not answer, continue the static compliance review and
-   say that live search did not run.
+   Tiers ①-② need no confirmation: check availability honestly and start,
+   and stay human-paced (rule 5 below). Reaching tier ③ means entering the
+   ask-the-user step — offer ③ first and ④ as the paid option. Tier ⑤
+   additionally requires the user to accept the account risk: MediaCrawler
+   drives the user's own logged-in account and platform anti-crawl has
+   flagged this route in practice. If the user does not answer, continue
+   the static compliance review and say that live search did not run.
 3. TikHub is an optional REST adapter. Use only `tools/tikhub/bin/tikhub`,
    `tools/tikhub/lib/tikhub_client.py`, or `tools/xhs_dynamic_evidence.py`.
    They call documented `https://api.tikhub.io/api/v1/...` endpoints. Never use
    `mcp.tikhub.io`, a TikHub MCP server, or a TikHub MCP tool.
-4. MediaCrawler is the last-resort free local-browser adapter for
-   Xiaohongshu, Douyin, Kuaishou, Bilibili, Weibo, Tieba, and Zhihu. It
-   drives the user's own logged-in browser and is the channel most exposed
-   to platform anti-crawl — the maintainer has observed anti-crawl
-   detection against this route in practice, so propose it only after the
-   channels above are unavailable or declined. Use only
-   `tools/mediacrawler_search.py` against a user-installed MediaCrawler
-   checkout. Never edit its config files, install proxy pools, or raise its
-   rate limits. After `--setup`, confirm with the user which platform
-   account to log in first.
+4. MediaCrawler is the tier-⑤ free local-browser adapter for Xiaohongshu,
+   Douyin, Kuaishou, Bilibili, Weibo, Tieba, and Zhihu. It drives the
+   user's own logged-in browser and is the channel most exposed to
+   platform anti-crawl. Use only `tools/mediacrawler_search.py` against a
+   user-installed MediaCrawler checkout. Never edit its config files,
+   install proxy pools, or raise its rate limits. After `--setup`, confirm
+   with the user which platform account to log in first.
 5. Computer use, browser automation, and `opencli` all drive a real browser
    or the screen and may access public results. Respect login, CAPTCHA,
    rate-limit, access, and platform restrictions. Do not bypass them. If a
@@ -106,12 +100,15 @@ mainland networks may explicitly set
 `TIKHUB_API_BASE_URL=https://api.tikhub.dev`. Never print or place credentials
 in commands, reports, fixtures, or commits.
 
-## MediaCrawler Configuration (last resort)
+## MediaCrawler Configuration (tier ⑤, last resort)
 
 The free route uses a locally installed MediaCrawler checkout with one
-manual QR-code login. It is the LAST channel to propose: it drives the
-user's own account and platform anti-crawl has flagged this route in
-practice. Install is automated: run
+manual QR-code login. It is tier ⑤ — the LAST channel, enabled only when
+①-④ are all unavailable. It drives the user's own account, platform
+anti-crawl has flagged this route in practice, and every run is bound by
+the frequency hard rules (30-minute same-platform cooldown, 10-minute
+failure backoff, machine-wide single-instance lock, per-run volume caps).
+Install is automated: run
 `python tools/mediacrawler_search.py --setup` (clones into gitignored
 `vendor/`, builds a venv, installs chromium, patches the config for
 standard Playwright mode), and check readiness with `--status`. Then run
